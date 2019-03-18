@@ -12,8 +12,5 @@
 	},
 	"dependencies": {
 		"typescript": "latest"
-	},
-	"scripts": {
-		"postinstall": "tsc -d -p ."
 	}
 }
