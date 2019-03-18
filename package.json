@@ -10,10 +10,10 @@
 		"type": "git",
 		"url": "https://github.com/butshuti/wspipeJS.git"
 	},
-	"devDependencies": {
+	"dependencies": {
 		"typescript": "latest"
 	},
 	"scripts": {
-    	"postinstall": "typescript -d -p ."
+    	"postinstall": "tsc -d -p ."
   	}
 }
