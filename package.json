@@ -9,6 +9,5 @@
 	"repository": {
 		"type": "git",
 		"url": "https://github.com/butshuti/wspipeJS.git"
-	},
-	"files": ["./lib", "index.ts"]
+	}
 }
