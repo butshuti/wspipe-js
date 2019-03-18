@@ -1,5 +1,5 @@
 {
-	"name": "wspipeJS",
+	"name": "wspipe-js",
 	"version": "1.0.0",
 	"description": "A js library for multiplexing websocket pipes",
 	"license": "MIT",
