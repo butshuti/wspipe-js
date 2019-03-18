@@ -1,4 +1,4 @@
 export interface EventHandler {
-    handleEvent(evtIndex: number, value: number, ts: number, recoil: boolean): void;
+    handleEvent(evtIndex: number, obj: JSON): void;
     clearEvents(): void;
 }

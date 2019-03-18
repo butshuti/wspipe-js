@@ -2,14 +2,14 @@ import {EventStream} from './EventStream';
 import {EventHandler} from './EventHandler';
 import {WSEventStreamConfig} from './WSEventStreamConfig';
 import {Peer} from './Peer';
-import {timedFetch} from '../../shims';
+import {timedFetch} from './fetch';
 import { StatusMonitor } from './StatusMonitor';
 
 const MSG_START_SESSION = '_start_';
 //const MSG_START_SESSION = '_start_network_delay_test_;200_hkghjgkdfhgjdfhkgjd';
 const MSG_END_SESSION = '_end_';
 //const MSG_END_SESSION = '_end_test_';
-const MSG_SYNC_KEY = 'sync';
+//const MSG_SYNC_KEY = 'sync';
 const MSG_TYPE_CTRL_KEY = 'ctrl';
 const API_WS_REQUEST_PATH = '/api/ws';
 const SERVICE_CONFIG_PORT_KEY = 'port';
@@ -20,6 +20,11 @@ const MAX_RETRIES = 3;
 const CONN_TIMEOUT = 5000;
 
 const OPEN_SOCKETS: Map<string, WebSocket> = new Map();
+
+interface CtrlMessage {
+    ctrl: string;
+    sync: string;
+};
 
 export class WSEventStream extends EventStream {
     ws: WebSocket;
@@ -253,14 +258,14 @@ export class WSEventStream extends EventStream {
         return msg;
     }
 
-    handleCtrlEvent(evt: JSON): void{
-        if(evt.hasOwnProperty(MSG_TYPE_CTRL_KEY)){
-            if(evt[MSG_TYPE_CTRL_KEY] == MSG_START_SESSION.split(';')[0]){
+    handleCtrlEvent(evt: CtrlMessage): void{
+        if(evt.ctrl !== undefined){
+            if(evt.ctrl == MSG_START_SESSION.split(';')[0]){
                 if(this.pendingStart){
                     this.onStatus('Session in progress...');
                 }
                 this.pendingStart = false;
-            }else if(evt[MSG_TYPE_CTRL_KEY] == MSG_END_SESSION){
+            }else if(evt.ctrl == MSG_END_SESSION){
                 this.pendingStart = false;
                 this.onStatus('Session ended.');
             }
@@ -268,17 +273,17 @@ export class WSEventStream extends EventStream {
     }
 
     broadcastEvent(evtData: string, eventGroup: string): void {
-        let obj: JSON;
+        let obj: CtrlMessage;
         try{
             obj = JSON.parse(evtData);
         }catch (e){
             console.debug(e);
             return;
         }
-        if(obj.hasOwnProperty(MSG_SYNC_KEY) && obj[MSG_SYNC_KEY] == MSG_TYPE_CTRL_KEY){
+        if(obj.sync !== undefined && obj.sync == MSG_TYPE_CTRL_KEY){
             this.handleCtrlEvent(obj);
         }else{
-            this.routeEvent(obj, eventGroup);
+            this.routeEvent(JSON.parse(JSON.stringify(obj)), eventGroup);
         }
         console.log(obj);
     }

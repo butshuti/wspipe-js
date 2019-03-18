@@ -4,6 +4,25 @@ import {WSEventStreamConfig} from './WSEventStreamConfig';
 import {Peer} from './Peer';
 import { StatusMonitor } from './StatusMonitor';
 
+interface EventMessage {
+    src: string;
+    dst: string;
+    event: string;
+    msg: JSON;
+    group: string;
+    channel: string;
+};
+
+interface ErrorEventMessage {
+    ref: string;
+    reason: string;
+};
+
+interface GroupDescription {
+    self: string;
+    peers: string[]
+};
+
 const PROTO_HDR = 'event';
 const PROTO_HDR_MSG = 'msg';
 const PROTO_HDR_ERROR_REASON = 'reason';
@@ -243,7 +262,7 @@ export class RelayedWSEventStream extends WSEventStream{
         this.startWS(peer);
     }
 
-    isValidSessionMessage(obj: JSON): boolean {
+    isValidSessionMessage(obj: EventMessage): boolean {
         console.log(this.currentPeers, 'curAddr: ' + this.localAddress);
         if(obj.hasOwnProperty(PROTO_HDR_SRC) && obj.hasOwnProperty(PROTO_HDR_DST)){
             let src: string = this.parsePeerAddress(obj[PROTO_HDR_SRC]);
@@ -262,10 +281,10 @@ export class RelayedWSEventStream extends WSEventStream{
         return label.substring(label.indexOf('/')+1);
     }
 
-    savePeers(jsonObj: JSON): void {
-        console.log('RelayedWSEventStream: PEERS: ', jsonObj);
+    savePeers(groupDescr: GroupDescription): void {
+        console.log('RelayedWSEventStream: PEERS: ', groupDescr);
         if(this.peersChangeCallback != null){
-            let peers: string[] = JSON.parse(JSON.stringify(jsonObj[PROTO_HDR_PEER_INFO]));
+            let peers: string[] = groupDescr.peers;
             peers = peers.filter((label) => this.isSensorLabel(label)).map((label) => this.parsePeerAddress(label));
             this.onStatus('Discovered ' + peers.length + ' devices.');
             let oldPeers: number = this.currentPeers.size;
@@ -280,8 +299,7 @@ export class RelayedWSEventStream extends WSEventStream{
         }
     }
 
-    handleEventMessage(obj: JSON, eventType: string): void {
-        let payload: JSON;
+    handleEventMessage(obj: EventMessage, eventType: string): void {
         if(eventType == PROTO_EVENT_TYPE_INVITE || eventType == PROTO_EVENT_TYPE_JOIN){
             if(obj.hasOwnProperty(PROTO_HDR_SRC) && obj.hasOwnProperty(PROTO_HDR_DST)){
                 let src: string = obj[PROTO_HDR_SRC];
@@ -301,14 +319,14 @@ export class RelayedWSEventStream extends WSEventStream{
             }
         }else if(eventType == PROTO_EVENT_TYPE_DISCOVERY){
             if(obj.hasOwnProperty(PROTO_HDR_MSG)){
-                payload = obj[PROTO_HDR_MSG];
+                let payload: GroupDescription = JSON.parse(JSON.stringify(obj[PROTO_HDR_MSG]));
                 if(payload != null && payload.hasOwnProperty(PROTO_HDR_PEER_INFO) && payload.hasOwnProperty(PROTO_MSG_HDR_SELF_ADDR)){
-                    this.localAddress = payload[PROTO_MSG_HDR_SELF_ADDR];
+                    this.localAddress = payload.self;
                     this.savePeers(payload);
                 }
             }
         }else if(eventType == PROTO_EVENT_TYPE_ERROR){
-            payload = obj[PROTO_HDR_MSG];
+            let payload: ErrorEventMessage = JSON.parse(JSON.stringify(obj[PROTO_HDR_MSG]));
             if(payload != null && payload.hasOwnProperty(PROTO_HDR_ERROR_REASON)){
                 this.sessionState = STATE_ERROR;
                 console.log({'Connection state=>ERROR; reason=': payload[PROTO_HDR_ERROR_REASON]});
@@ -322,9 +340,9 @@ export class RelayedWSEventStream extends WSEventStream{
     }
 
     broadcastEvent(evtData: string): void {
-        let obj: JSON = JSON.parse(evtData);
+        let obj: EventMessage = JSON.parse(evtData);
         if(obj.hasOwnProperty(PROTO_HDR) && obj.hasOwnProperty(PROTO_HDR_MSG)){
-            this.handleEventMessage(obj, obj[PROTO_HDR]);
+            this.handleEventMessage(obj, obj.event);
         }else{
             console.log('Unknown msg format: ' + evtData);
         }

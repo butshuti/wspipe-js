@@ -1,4 +1,4 @@
-export const timedFetch = (url, options, timeout=5000) : Promise<Response> =>
+export const timedFetch = (url: string, options: Object, timeout=5000) : Promise<Response> =>
     new Promise((resolve, reject) =>{
         let timer = setTimeout(() => reject('Fetch: request timeout out.'), timeout);
         fetch(url, options).then(

@@ -41,15 +41,14 @@ export class EventStream {
         let handler: EventHandler = this.getEventHandler(eventGroup);
         if(handler != null){
             if(obj.hasOwnProperty('depth') && obj.hasOwnProperty('ts') && obj.hasOwnProperty('recoil')){
-                handler.handleEvent(this.counter++, obj['depth'], Number.parseInt(obj['ts']), obj['recoil']);
+                handler.handleEvent(this.counter++, obj);
             }
         }
     }
 
-    broadcast(evtIndex:number, depth: number, ts: number, recoil: boolean): void{
-        console.log('EVT: ' + ts + '; handler=' + this.handler);
+    broadcast(evtIndex:number, obj: JSON): void{
         if(this.handler != null){
-            this.handler.handleEvent(evtIndex, depth, ts, recoil);
+            this.handler.handleEvent(evtIndex, obj);
         }
     }
 
