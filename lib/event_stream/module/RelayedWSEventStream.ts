@@ -2,7 +2,6 @@ import {WSEventStream} from './WSEventStream';
 import {EventHandler} from './EventHandler';
 import {WSEventStreamConfig} from './WSEventStreamConfig';
 import {Peer} from './Peer';
-import {clearErrorState} from '../../state';
 import { StatusMonitor } from './StatusMonitor';
 
 const PROTO_HDR = 'event';
@@ -287,7 +286,7 @@ export class RelayedWSEventStream extends WSEventStream{
             if(obj.hasOwnProperty(PROTO_HDR_SRC) && obj.hasOwnProperty(PROTO_HDR_DST)){
                 let src: string = obj[PROTO_HDR_SRC];
                 let target: string = obj[PROTO_HDR_DST];
-                clearErrorState();
+                this.getStatusMonitor().clearErrorState();
                 if(this.localAddress != '' && this.localAddress == target){
                     if(eventType == PROTO_EVENT_TYPE_INVITE){
                         console.log('INVITE from ' + src);

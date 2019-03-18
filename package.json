@@ -1,0 +1,14 @@
+{
+	"name": "wspipeJS",
+	"version": "1.0.0",
+	"description": "A js library for multiplexing websocket pipes",
+	"license": "MIT",
+	"author": {
+		"name": "Theogene Hakiza Bucuti"
+	},
+	"repository": {
+		"type": "git",
+		"url": "https://github.com/butshuti/wspipeJS.git"
+	},
+	"files": "./lib"
+}
