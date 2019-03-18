@@ -1,11 +1,12 @@
 {
     "compilerOptions": {
     	"target": "esnext",
-        "module": "commonjs",
+        "module": "amd",
         "declaration": true,
         "noImplicitAny": true,
         "removeComments": true,
         "preserveConstEnums": true,
+        "outFile": "index.js",
         "sourceMap": false
     }
 }
