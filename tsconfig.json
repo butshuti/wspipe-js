@@ -1,12 +1,18 @@
 {
     "compilerOptions": {
     	"target": "esnext",
-        "module": "system",
+        "module": "amd",
         "noImplicitAny": true,
         "removeComments": true,
         "preserveConstEnums": true,
         "outFile": "index.js",
-        "sourceMap": true
-    }
+        "sourceMap": false
+    },
+    "include": [
+        "typings"
+    ],
+    "exclude": [
+        "node_modules"
+    ]
 }
 
