@@ -7,13 +7,6 @@
         "preserveConstEnums": true,
         "outFile": "index.js",
         "sourceMap": false
-    },
-    "include": [
-        "lib"
-    ],
-    "exclude": [
-        "node_modules",
-        "typings"
-    ]
+    }
 }
 
