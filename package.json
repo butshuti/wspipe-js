@@ -18,11 +18,7 @@
 	"scripts": {
 		"build": "tsc"
 	},
-	"include": [
+	"files": [
 		"dist"
-	],
-	"exclude": [
-		"node_modules",
-		"lib"
 	]
 }
