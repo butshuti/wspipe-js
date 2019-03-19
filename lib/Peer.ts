@@ -4,18 +4,19 @@ export class Peer {
     peerName: string;
     eventStreamURI: string;
     url: URL;
-    peerAddress: string;
+    peerAddress: string | null;
     inError: boolean;
-    streamConfig: WSEventStreamConfig;
+    streamConfig: WSEventStreamConfig|null;
     reachable: boolean;
 
-    constructor(name: string, peerLocation: URL, peerAddress: string){
+    constructor(name: string, peerLocation: URL, peerAddress: string|null){
         this.peerName = name;
         this.peerAddress = peerAddress;
         this.url = peerLocation;
         this.eventStreamURI = peerLocation.href;
         this.inError = false;
         this.reachable = false;
+        this.streamConfig = null;
     }
 
     withConfig(config: WSEventStreamConfig): Peer {
@@ -25,7 +26,7 @@ export class Peer {
         return this;
     }
 
-    getStreamConfig(): WSEventStreamConfig {
+    getStreamConfig(): WSEventStreamConfig|null {
         return this.streamConfig;
     }
 
@@ -38,15 +39,15 @@ export class Peer {
     }
 
     getURL(): URL {
-        return this.streamConfig != null ? this.getStreamConfig().dstLocation : this.url;
+        return this.streamConfig != null ? this.streamConfig.dstLocation : this.url;
     }
 
-    getPeerAddress(): string {
+    getPeerAddress(): string | null {
         return this.peerAddress;
     }
 
     getPeerLocation(): string {
-        let addr = this.getPeerAddress() != null ? (this.getPeerAddress() + '@') : '';
+        let addr = this.peerAddress != null ? (this.peerAddress + '@') : '';
         return (addr + this.getURI().substr(this.getURI().indexOf('://')+3)).replace(/\/+/i, '/');
     }
 

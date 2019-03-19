@@ -65,13 +65,13 @@ export class RelayedWSEventStream extends WSEventStream{
     sessionState: string;
     localAddress: string;
     remoteAddress: string;
-    lastConnectionURL: URL;
+    lastConnectionURL: URL|null;
     localName: string;
     currentPeers: Set<string>;
     eventChannels: Set<string>;
     useTLS: boolean;
-    pingTimer: number;
-    peersChangeCallback: Function;
+    pingTimer: number|null;
+    peersChangeCallback: Function|null;
 
     constructor(config: WSEventStreamConfig){
         super(config, null, null);
@@ -79,6 +79,7 @@ export class RelayedWSEventStream extends WSEventStream{
         this.localAddress = '';
         this.remoteAddress = '';
         this.lastConnectionURL = null;
+        this.peersChangeCallback = null;
         this.currentPeers = new Set([]);
         this.eventChannels = new Set(['network_delay_test', 'app_data']);
         this.useTLS = USE_TLS;
@@ -234,7 +235,9 @@ export class RelayedWSEventStream extends WSEventStream{
     }
 
     onPeersChanged():void {
-        this.peersChangeCallback([...this.currentPeers]);
+        if(this.peersChangeCallback != null){
+            this.peersChangeCallback([...this.currentPeers]);
+        }
     }
 
     registerPeer(peer: string): void {
@@ -245,7 +248,7 @@ export class RelayedWSEventStream extends WSEventStream{
     }
 
     initiateWSSession(selectedPeer: Peer): void{
-        let dstLocation: URL = selectedPeer != null ? selectedPeer.getURL() : null;
+        let dstLocation: URL = selectedPeer.getURL();
         if(dstLocation == null){
             dstLocation = this.getEventStreamConfig().dstLocation;
         }
@@ -262,7 +265,7 @@ export class RelayedWSEventStream extends WSEventStream{
         this.startWS(peer);
     }
 
-    isValidSessionMessage(obj: EventMessage): boolean {
+    private isValidSessionMessage(obj: EventMessage): boolean {
         console.log(this.currentPeers, 'curAddr: ' + this.localAddress);
         if(obj.hasOwnProperty(PROTO_HDR_SRC) && obj.hasOwnProperty(PROTO_HDR_DST)){
             let src: string = this.parsePeerAddress(obj[PROTO_HDR_SRC]);
@@ -273,7 +276,7 @@ export class RelayedWSEventStream extends WSEventStream{
         return false;
     }
 
-    isSensorLabel(label: string): boolean {
+    private isSensorLabel(label: string): boolean {
         return label != null && label.startsWith(PROTO_PEER_ROLE_SENSOR + '/');
     }
 
@@ -281,7 +284,7 @@ export class RelayedWSEventStream extends WSEventStream{
         return label.substring(label.indexOf('/')+1);
     }
 
-    savePeers(groupDescr: GroupDescription): void {
+    private savePeers(groupDescr: GroupDescription): void {
         console.log('RelayedWSEventStream: PEERS: ', groupDescr);
         if(this.peersChangeCallback != null){
             let peers: string[] = groupDescr.peers;
@@ -299,7 +302,7 @@ export class RelayedWSEventStream extends WSEventStream{
         }
     }
 
-    handleEventMessage(obj: EventMessage, eventType: string): void {
+    private handleEventMessage(obj: EventMessage, eventType: string): void {
         if(eventType == PROTO_EVENT_TYPE_INVITE || eventType == PROTO_EVENT_TYPE_JOIN){
             if(obj.hasOwnProperty(PROTO_HDR_SRC) && obj.hasOwnProperty(PROTO_HDR_DST)){
                 let src: string = obj[PROTO_HDR_SRC];
@@ -348,12 +351,16 @@ export class RelayedWSEventStream extends WSEventStream{
         }
     }
 
-    getEventHandler(eventGroup: string): EventHandler {
+    getEventHandler(eventGroup: string): EventHandler | null {
         if(eventGroup == null){
             return null;
         }
         if(RelayedWSEventStream.HANDLERS.has(eventGroup)){
-            return RelayedWSEventStream.HANDLERS.get(eventGroup);
+            let ret: EventHandler |undefined = RelayedWSEventStream.HANDLERS.get(eventGroup);
+            if(ret !== undefined){
+                return ret;
+            }
         }
+        return null;
     }
 }

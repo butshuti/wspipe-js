@@ -8,14 +8,21 @@
 	},
 	"repository": {
 		"type": "git",
-		"url": "https://github.com/butshuti/wspipeJS.git"
-	},
-	"dependencies": {
-		"typescript": "latest"
+		"url": "https://github.com/butshuti/wspipe-js.git"
 	},
 	"main": "dist/index.js",
  	"types" : "dist/index.d.ts",
+	"devDependencies": {
+		"typescript": "latest"
+	},
 	"scripts": {
-		"postinstall": "tsc"
-	}
+		"build": "tsc"
+	},
+	"include": [
+		"dist"
+	],
+	"exclude": [
+		"node_modules",
+		"lib"
+	]
 }

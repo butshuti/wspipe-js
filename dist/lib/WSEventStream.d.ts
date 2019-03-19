@@ -1,0 +1,37 @@
+import { EventStream } from './EventStream';
+import { EventHandler } from './EventHandler';
+import { WSEventStreamConfig } from './WSEventStreamConfig';
+import { Peer } from './Peer';
+import { StatusMonitor } from './StatusMonitor';
+export declare class WSEventStream extends EventStream {
+    ws: WebSocket | null;
+    counter: number;
+    retryCounter: number;
+    wsStreamConfig: WSEventStreamConfig;
+    pendingStart: boolean;
+    wsTimeout: number;
+    constructor(config: WSEventStreamConfig, handler: EventHandler | null, statusMonitor: StatusMonitor | null);
+    withConfig(config: WSEventStreamConfig): WSEventStream;
+    getEventStreamConfig(): WSEventStreamConfig;
+    initiateWSSession(selectedPeer: Peer): void;
+    buildWSURL(scheme: string, hostname: string, port: number, path: string): string;
+    onConnected(selectedPeer: Peer): void;
+    onDisconnected(selectedPeer: Peer): void;
+    onError(msg: string): void;
+    onStatus(msg: string): void;
+    isPendingStart(): boolean;
+    registerConnection(url: string, socket: WebSocket): void;
+    getConnectionSocket(url: string): WebSocket | null;
+    isConnected(url: string): boolean;
+    clearConnection(url: string): void;
+    setWSConnectTimeout(timeout: number): void;
+    clearWSConnectionTimeout(): void;
+    startWS(selectedPeer: Peer): void;
+    startSession(selectedPeer: Peer, reset: boolean): void;
+    start(selectedPeer: Peer): void;
+    stop(selectedPeer: Peer): void;
+    sendMsg(msg: string): void;
+    packMsg(msg: string, selectedPeer: Peer): string;
+    private handleCtrlEvent(evt);
+    broadcastEvent(evtData: string, eventGroup: string): void;
+}

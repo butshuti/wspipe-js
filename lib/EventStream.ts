@@ -13,10 +13,10 @@ class NoOpStatusMonitor implements StatusMonitor {
     }
 }
 export class EventStream {
-    handler: EventHandler;
-    statusMonitor: StatusMonitor;
+    handler: EventHandler|null;
+    statusMonitor: StatusMonitor|null;
     counter: number;
-    constructor(handler: EventHandler, statusMonitor: StatusMonitor){
+    constructor(handler: EventHandler|null, statusMonitor: StatusMonitor|null){
         this.handler = handler;
         this.statusMonitor = statusMonitor;
         this.counter = 0;
@@ -26,7 +26,7 @@ export class EventStream {
         return this.counter++;
     }
 
-    getEventHandler(eventGroup: string): EventHandler {
+    getEventHandler(eventGroup: string): EventHandler | null {
         if(eventGroup != null){
             return this.handler != null ? this.handler : null;
         }
@@ -38,7 +38,7 @@ export class EventStream {
     }
 
     routeEvent(obj: JSON, eventGroup: string): void {
-        let handler: EventHandler = this.getEventHandler(eventGroup);
+        let handler: EventHandler |null = this.getEventHandler(eventGroup);
         if(handler != null){
             if(obj.hasOwnProperty('depth') && obj.hasOwnProperty('ts') && obj.hasOwnProperty('recoil')){
                 handler.handleEvent(this.counter++, obj);

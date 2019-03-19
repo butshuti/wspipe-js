@@ -35,7 +35,7 @@ export class DiscoveryClient {
         });
     }
 
-    start(statusCallback: Function): void{
+    start(statusCallback: Function|null): void{
         this.eventStream.initiateWSSession(new Peer('', this.streamConfig.dstLocation, null).withConfig(this.streamConfig));
         this.eventStream.registerPeersChangeCallback(this.onPeersChange);
         this.active = true;
