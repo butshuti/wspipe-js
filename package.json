@@ -16,6 +16,6 @@
 	"main": "dist/index.js",
  	"types" : "dist/index.d.ts",
 	"scripts": {
-		"build": "tsc"
+		"postinstall": "tsc"
 	}
 }
