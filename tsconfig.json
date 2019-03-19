@@ -6,7 +6,6 @@
         "noImplicitAny": true,
         "removeComments": true,
         "preserveConstEnums": true,
-        "outFile": "index.js",
         "sourceMap": false
     }
 }
