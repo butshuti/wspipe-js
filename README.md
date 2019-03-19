@@ -9,7 +9,7 @@ npm install git+https://git@github.com/butshuti/wspipe-js.git --save
 ### TypeScript
 ####Discovering new peers
 ```typescript
-import {Peer, DiscoveryClient} from 'wspipe-js';
+import {Peer, DiscoveryClient, PeersChangeListener} from 'wspipe-js';
 let url: URL = ....;
 let peerUpdatesLister: PeersChangeListener = ...; 
 const peerUpdatesLister = {
