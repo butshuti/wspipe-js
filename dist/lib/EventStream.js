@@ -41,8 +41,8 @@ class EventStream {
             this.handler.handleEvent(evtIndex, obj);
         }
     }
-    start(dstPeer) {
-        console.log('dstPeer => ' + dstPeer);
+    start(dstPeer, eventCode) {
+        console.log(eventCode + ': dstPeer => ' + dstPeer);
     }
     stop(dstPeer) {
         console.log('dstPeer => ' + dstPeer);

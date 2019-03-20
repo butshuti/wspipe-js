@@ -11,6 +11,6 @@ export declare class EventStream {
     getStatusMonitor(): StatusMonitor;
     routeEvent(obj: JSON, eventGroup: string): void;
     broadcast(evtIndex: number, obj: JSON): void;
-    start(dstPeer: Peer): void;
+    start(dstPeer: Peer, eventCode: string): void;
     stop(dstPeer: Peer): void;
 }

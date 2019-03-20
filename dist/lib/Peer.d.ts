@@ -7,7 +7,10 @@ export declare class Peer {
     inError: boolean;
     streamConfig: WSEventStreamConfig | null;
     reachable: boolean;
+    pendingEventCode: string | null;
     constructor(name: string, peerLocation: URL, peerAddress: string | null);
+    markPending(eventCode: string): void;
+    getPendingEventCode(): string | null;
     withConfig(config: WSEventStreamConfig): Peer;
     getStreamConfig(): WSEventStreamConfig | null;
     getPeerName(): string;

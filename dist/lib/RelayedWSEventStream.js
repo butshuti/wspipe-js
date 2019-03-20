@@ -155,9 +155,9 @@ class RelayedWSEventStream extends WSEventStream_1.WSEventStream {
             });
         });
     }
-    startSession(selectedPeer, reset) {
+    startSession(selectedPeer, eventCode, reset) {
         this.subscribeToSessionEvents();
-        super.startSession(selectedPeer, reset);
+        super.startSession(selectedPeer, eventCode, reset);
     }
     stop(selectedPeer) {
         this.unsubscribeFromSessionEvents();

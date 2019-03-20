@@ -13,7 +13,7 @@ export declare class WSEventStream extends EventStream {
     constructor(config: WSEventStreamConfig, handler: EventHandler | null, statusMonitor: StatusMonitor | null);
     withConfig(config: WSEventStreamConfig): WSEventStream;
     getEventStreamConfig(): WSEventStreamConfig;
-    initiateWSSession(selectedPeer: Peer): void;
+    initiateWSSession(selectedPeer: Peer, eventCode: string): void;
     buildWSURL(scheme: string, hostname: string, port: number, path: string): string;
     onConnected(selectedPeer: Peer): void;
     onDisconnected(selectedPeer: Peer): void;
@@ -27,8 +27,8 @@ export declare class WSEventStream extends EventStream {
     setWSConnectTimeout(timeout: number): void;
     clearWSConnectionTimeout(): void;
     startWS(selectedPeer: Peer): void;
-    startSession(selectedPeer: Peer, reset: boolean): void;
-    start(selectedPeer: Peer): void;
+    startSession(selectedPeer: Peer, eventCode: string, reset: boolean): void;
+    start(selectedPeer: Peer, eventCode: string): void;
     stop(selectedPeer: Peer): void;
     sendMsg(msg: string): void;
     packMsg(msg: string, selectedPeer: Peer): string;

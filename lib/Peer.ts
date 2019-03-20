@@ -8,6 +8,7 @@ export class Peer {
     inError: boolean;
     streamConfig: WSEventStreamConfig|null;
     reachable: boolean;
+    pendingEventCode: string | null;
 
     constructor(name: string, peerLocation: URL, peerAddress: string|null){
         this.peerName = name;
@@ -17,6 +18,15 @@ export class Peer {
         this.inError = false;
         this.reachable = false;
         this.streamConfig = null;
+        this.pendingEventCode = null;
+    }
+
+    markPending(eventCode: string): void{
+        this.pendingEventCode = eventCode;
+    }
+
+    getPendingEventCode(): string|null{
+        return this.pendingEventCode;
     }
 
     withConfig(config: WSEventStreamConfig): Peer {

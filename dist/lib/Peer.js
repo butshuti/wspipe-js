@@ -9,6 +9,13 @@ class Peer {
         this.inError = false;
         this.reachable = false;
         this.streamConfig = null;
+        this.pendingEventCode = null;
+    }
+    markPending(eventCode) {
+        this.pendingEventCode = eventCode;
+    }
+    getPendingEventCode() {
+        return this.pendingEventCode;
     }
     withConfig(config) {
         if (config != null) {

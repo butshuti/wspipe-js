@@ -209,9 +209,9 @@ export class RelayedWSEventStream extends WSEventStream{
         });
     }
 
-    startSession(selectedPeer: Peer, reset: boolean): void {
+    startSession(selectedPeer: Peer, eventCode: string, reset: boolean): void {
         this.subscribeToSessionEvents();
-        super.startSession(selectedPeer, reset);
+        super.startSession(selectedPeer, eventCode, reset);
     }
 
     stop(selectedPeer: Peer): void {

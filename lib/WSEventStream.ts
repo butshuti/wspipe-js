@@ -55,7 +55,7 @@ export class WSEventStream extends EventStream {
         return this.wsStreamConfig;
     }
 
-    initiateWSSession(selectedPeer: Peer): void{
+    initiateWSSession(selectedPeer: Peer, eventCode: string): void{
         let dstLocation: URL = selectedPeer.getURL();
         if(dstLocation == null){
             dstLocation = this.wsStreamConfig.dstLocation;
@@ -73,6 +73,7 @@ export class WSEventStream extends EventStream {
             && json.hasOwnProperty(SERVICE_CONFIG_PATH_KEY)){
                 let url: string = thiz.buildWSURL(json[SERVICE_CONFIG_SCHEME_KEY], dstLocation.hostname, json[SERVICE_CONFIG_PORT_KEY], json[SERVICE_CONFIG_PATH_KEY]);
                 let peer: Peer = new Peer('', new URL('', url), null);
+                peer.markPending(eventCode);
                 thiz.startWS(peer);
             }else{
                 console.error('Received incomplete configuration response.');
@@ -92,8 +93,9 @@ export class WSEventStream extends EventStream {
 
     onConnected(selectedPeer: Peer): void {
         this.getStatusMonitor().clearErrorState();
-        if(this.pendingStart){
-            this.startSession(selectedPeer, true);
+        let eventCode: string | null = selectedPeer.getPendingEventCode();
+        if(this.pendingStart && eventCode != null){
+            this.startSession(selectedPeer, eventCode, true);
         }
         console.log('Connected to ' + selectedPeer.getPeerName());
     }
@@ -209,20 +211,20 @@ export class WSEventStream extends EventStream {
         this.registerConnection(url, ws);
     }
 
-    startSession(selectedPeer: Peer, reset: boolean): void{
+    startSession(selectedPeer: Peer, eventCode: string, reset: boolean): void{
         this.getStatusMonitor().clearErrorState();
         if(this.ws != null && this.ws.OPEN){
             if(reset){
                 this.retryCounter = 0;
                 this.pendingStart = true;
             }
-            this.ws.send(this.packMsg(MSG_START_SESSION, selectedPeer));
+            this.ws.send(this.packMsg(MSG_START_SESSION + ';' + eventCode, selectedPeer));
             this.onStatus('Starting a new session....');
             let thiz = this;
             setInterval(function(){
                 if(thiz.pendingStart && thiz.retryCounter < MAX_RETRIES){
                     thiz.onStatus('startSession(): retry #' + thiz.retryCounter);
-                    thiz.startSession(selectedPeer, false);
+                    thiz.startSession(selectedPeer, eventCode, false);
                     thiz.retryCounter++;
                 }
             }, 3000);
@@ -231,13 +233,13 @@ export class WSEventStream extends EventStream {
         }
     }
 
-    start(selectedPeer: Peer): void {
+    start(selectedPeer: Peer, eventCode: string): void {
         console.log('WS? ' + this.ws);
         if(this.ws != null && this.ws.readyState == WebSocket.OPEN){
-            this.startSession(selectedPeer, true);
+            this.startSession(selectedPeer, eventCode, true);
         }else{
             this.pendingStart = true;
-            this.initiateWSSession(selectedPeer);
+            this.initiateWSSession(selectedPeer, eventCode);
             console.log('---pending start...');
         }
         console.log('Start????');
@@ -247,7 +249,10 @@ export class WSEventStream extends EventStream {
         if(this.ws != null){
             this.ws.send(this.packMsg(MSG_END_SESSION, selectedPeer));
             if(!this.wsStreamConfig.keepAlive){
-                this.ws.close();
+                let _ws = this.ws;
+                setTimeout(()=>{
+                    _ws.close();
+                }, 1000);
                 this.ws = null;
             }
             this.onStatus('Requested SESSION STOP');
