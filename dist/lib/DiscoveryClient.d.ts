@@ -12,7 +12,7 @@ export declare class DiscoveryClient {
     streamConfig: WSEventStreamConfig;
     constructor(url: URL, peersListener: PeersChangeListener);
     startAsync(): Promise<URL>;
-    start(statusCallback: Function | null): void;
+    start(statusCallback: Function | null): Promise<boolean>;
     extractPeerName(label: string): string;
     onPeersChange(peers: string[]): void;
     isActive(): boolean;

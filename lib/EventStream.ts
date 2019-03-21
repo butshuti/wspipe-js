@@ -40,10 +40,12 @@ export class EventStream {
     routeEvent(obj: JSON, eventGroup: string): void {
         let handler: EventHandler |null = this.getEventHandler(eventGroup);
         if(handler != null){
-            if(obj.hasOwnProperty('depth') && obj.hasOwnProperty('ts') && obj.hasOwnProperty('recoil')){
-                handler.handleEvent(this.counter++, obj);
-            }
+            handler.handleEvent(this.counter++, obj);
         }
+    }
+
+    sendTo(payload: string, dstPeer: Peer): void {
+        console.log(payload + ': dstPeer => ' + dstPeer);
     }
 
     broadcast(evtIndex:number, obj: JSON): void{

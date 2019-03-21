@@ -48,22 +48,22 @@ class Peer {
     isMarkedAsReachable() {
         return this.reachable;
     }
-    isReachable() {
+    async isReachable() {
         if (this.url == null) {
-            return false;
+            return Promise.resolve(false);
         }
         let thiz = this;
         let ping = Math.random().toString(36).toString();
-        fetch(this.url.href + 'echo?ping=' + ping, { method: 'GET' }).then(function (response) {
+        return fetch(this.url.href + 'echo?ping=' + ping, { method: 'GET' }).then(function (response) {
             return response.text();
         }).then(function (text) {
             thiz.reachable = text == ping;
-            console.log(text);
+            return thiz.reachable;
         }).catch(function (e) {
             console.error(e);
             thiz.reachable = false;
+            return thiz.reachable;
         });
-        return thiz.reachable;
     }
     isDirect() {
         return this.peerAddress == null;

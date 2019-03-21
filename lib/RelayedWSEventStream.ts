@@ -344,6 +344,7 @@ export class RelayedWSEventStream extends WSEventStream{
 
     broadcastEvent(evtData: string): void {
         let obj: EventMessage = JSON.parse(evtData);
+        console.log('evevevev', evtData, obj);
         if(obj.hasOwnProperty(PROTO_HDR) && obj.hasOwnProperty(PROTO_HDR_MSG)){
             this.handleEventMessage(obj, obj.event);
         }else{

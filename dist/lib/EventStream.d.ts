@@ -10,6 +10,7 @@ export declare class EventStream {
     getEventHandler(eventGroup: string): EventHandler | null;
     getStatusMonitor(): StatusMonitor;
     routeEvent(obj: JSON, eventGroup: string): void;
+    sendTo(payload: string, dstPeer: Peer): void;
     broadcast(evtIndex: number, obj: JSON): void;
     start(dstPeer: Peer, eventCode: string): void;
     stop(dstPeer: Peer): void;

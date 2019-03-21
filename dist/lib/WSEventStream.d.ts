@@ -30,6 +30,7 @@ export declare class WSEventStream extends EventStream {
     startSession(selectedPeer: Peer, eventCode: string, reset: boolean): void;
     start(selectedPeer: Peer, eventCode: string): void;
     stop(selectedPeer: Peer): void;
+    sendTo(msg: string, selectedPeer: Peer): void;
     sendMsg(msg: string): void;
     packMsg(msg: string, selectedPeer: Peer): string;
     private handleCtrlEvent(evt);

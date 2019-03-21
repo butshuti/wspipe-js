@@ -11,6 +11,7 @@ const MSG_END_SESSION = '_end_';
 //const MSG_END_SESSION = '_end_test_';
 //const MSG_SYNC_KEY = 'sync';
 const MSG_TYPE_CTRL_KEY = 'ctrl';
+const MSG_TYPE_DATA_KEY = 'data';
 const API_WS_REQUEST_PATH = '/api/ws';
 const SERVICE_CONFIG_PORT_KEY = 'port';
 const SERVICE_CONFIG_SCHEME_KEY = 'scheme';
@@ -24,6 +25,7 @@ const OPEN_SOCKETS: Map<string, WebSocket> = new Map();
 interface CtrlMessage {
     ctrl: string;
     sync: string;
+    attachment: string;
 };
 
 export class WSEventStream extends EventStream {
@@ -62,7 +64,6 @@ export class WSEventStream extends EventStream {
         }
         let thiz = this;
         timedFetch(dstLocation.origin + this.wsStreamConfig.path, {}, CONN_TIMEOUT).then((response) => {
-            console.log(response);
             if(response.ok){
                 return response.json();
             }else{
@@ -111,7 +112,6 @@ export class WSEventStream extends EventStream {
     }
 
     onStatus(msg: string): void {
-        console.log(msg);
         this.getStatusMonitor().setStatusMessage(msg);
     }
 
@@ -234,7 +234,6 @@ export class WSEventStream extends EventStream {
     }
 
     start(selectedPeer: Peer, eventCode: string): void {
-        console.log('WS? ' + this.ws);
         if(this.ws != null && this.ws.readyState == WebSocket.OPEN){
             this.startSession(selectedPeer, eventCode, true);
         }else{
@@ -242,7 +241,6 @@ export class WSEventStream extends EventStream {
             this.initiateWSSession(selectedPeer, eventCode);
             console.log('---pending start...');
         }
-        console.log('Start????');
     }
 
     stop(selectedPeer: Peer): void {
@@ -259,6 +257,10 @@ export class WSEventStream extends EventStream {
         }
         this.counter = 0;
         this.pendingStart = false;
+    }
+
+    sendTo(msg: string, selectedPeer: Peer): void {
+        this.sendMsg(this.packMsg(msg, selectedPeer));
     }
 
     sendMsg(msg: string): void {
@@ -294,8 +296,10 @@ export class WSEventStream extends EventStream {
             console.debug(e);
             return;
         }
-        if(obj.sync !== undefined && obj.sync == MSG_TYPE_CTRL_KEY){
+        if(obj.sync == MSG_TYPE_CTRL_KEY){
             this.handleCtrlEvent(obj);
+        }else if(obj.sync === MSG_TYPE_DATA_KEY){
+            this.routeEvent(JSON.parse(obj.attachment), eventGroup);
         }else{
             this.routeEvent(JSON.parse(JSON.stringify(obj)), eventGroup);
         }

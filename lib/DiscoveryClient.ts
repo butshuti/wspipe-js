@@ -28,20 +28,26 @@ export class DiscoveryClient {
         this.uri = this.streamConfig.getURI();
     }
 
-    startAsync(): Promise<URL> {
-        return new Promise((resolve) => {
-            this.start(null);
-            resolve(new URL('', this.streamConfig.getAddress()));
+    async startAsync(): Promise<URL> {
+        let peerAddress = this.streamConfig.getAddress();
+        return this.start(null).then(success => {
+            if(success){
+                return new URL('', peerAddress);
+            }else{
+                throw new Error('Unable to connect to ' + peerAddress);
+            }
         });
     }
 
-    start(statusCallback: Function|null): void{
-        this.eventStream.initiateWSSession(new Peer('', this.streamConfig.dstLocation, null).withConfig(this.streamConfig));
+    async start(statusCallback: Function|null): Promise<boolean>{
+        let peer: Peer = new Peer('', this.streamConfig.dstLocation, null).withConfig(this.streamConfig);
+        this.eventStream.initiateWSSession(peer);
         this.eventStream.registerPeersChangeCallback(this.onPeersChange);
         this.active = true;
         if(statusCallback != null){
             statusCallback('STARTING...', false);
         }
+        return peer.isReachable();
     }
 
     /*stop(): void{
