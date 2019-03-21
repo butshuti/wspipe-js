@@ -214,9 +214,9 @@ export class RelayedWSEventStream extends WSEventStream{
         super.startSession(selectedPeer, eventCode, reset);
     }
 
-    stop(selectedPeer: Peer): void {
+    stop(selectedPeer: Peer, eventCode: string): void {
         this.unsubscribeFromSessionEvents();
-        super.stop(selectedPeer);
+        super.stop(selectedPeer, eventCode);
     }
 
     queryConnectedPeers(): void {
@@ -344,7 +344,6 @@ export class RelayedWSEventStream extends WSEventStream{
 
     broadcastEvent(evtData: string): void {
         let obj: EventMessage = JSON.parse(evtData);
-        console.log('evevevev', evtData, obj);
         if(obj.hasOwnProperty(PROTO_HDR) && obj.hasOwnProperty(PROTO_HDR_MSG)){
             this.handleEventMessage(obj, obj.event);
         }else{

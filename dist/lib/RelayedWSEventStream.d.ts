@@ -34,7 +34,7 @@ export declare class RelayedWSEventStream extends WSEventStream {
     subscribeToSessionEvents(): void;
     unsubscribeFromSessionEvents(): void;
     startSession(selectedPeer: Peer, eventCode: string, reset: boolean): void;
-    stop(selectedPeer: Peer): void;
+    stop(selectedPeer: Peer, eventCode: string): void;
     queryConnectedPeers(): void;
     invitePeer(peer: string): void;
     joinPeerSession(peer: string): void;

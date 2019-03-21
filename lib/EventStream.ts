@@ -58,7 +58,7 @@ export class EventStream {
         console.log(eventCode + ': dstPeer => ' + dstPeer);
     }
 
-    stop(dstPeer: Peer): void {
-        console.log('dstPeer => ' + dstPeer);
+    stop(dstPeer: Peer, eventCode: string): void {
+        console.log(eventCode + ': dstPeer => ' + dstPeer);
     }
 }

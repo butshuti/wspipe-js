@@ -13,5 +13,5 @@ export declare class EventStream {
     sendTo(payload: string, dstPeer: Peer): void;
     broadcast(evtIndex: number, obj: JSON): void;
     start(dstPeer: Peer, eventCode: string): void;
-    stop(dstPeer: Peer): void;
+    stop(dstPeer: Peer, eventCode: string): void;
 }

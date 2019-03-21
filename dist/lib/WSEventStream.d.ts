@@ -8,7 +8,7 @@ export declare class WSEventStream extends EventStream {
     counter: number;
     retryCounter: number;
     wsStreamConfig: WSEventStreamConfig;
-    pendingStart: boolean;
+    pendingCommandACKs: Map<string, number>;
     wsTimeout: number;
     constructor(config: WSEventStreamConfig, handler: EventHandler | null, statusMonitor: StatusMonitor | null);
     withConfig(config: WSEventStreamConfig): WSEventStream;
@@ -19,7 +19,6 @@ export declare class WSEventStream extends EventStream {
     onDisconnected(selectedPeer: Peer): void;
     onError(msg: string): void;
     onStatus(msg: string): void;
-    isPendingStart(): boolean;
     registerConnection(url: string, socket: WebSocket): void;
     getConnectionSocket(url: string): WebSocket | null;
     isConnected(url: string): boolean;
@@ -29,7 +28,7 @@ export declare class WSEventStream extends EventStream {
     startWS(selectedPeer: Peer): void;
     startSession(selectedPeer: Peer, eventCode: string, reset: boolean): void;
     start(selectedPeer: Peer, eventCode: string): void;
-    stop(selectedPeer: Peer): void;
+    stop(selectedPeer: Peer, eventCode: string): void;
     sendTo(msg: string, selectedPeer: Peer): void;
     sendMsg(msg: string): void;
     packMsg(msg: string, selectedPeer: Peer): string;

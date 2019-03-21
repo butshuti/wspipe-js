@@ -3,10 +3,6 @@ Object.defineProperty(exports, "__esModule", { value: true });
 const EventStream_1 = require("./EventStream");
 const Peer_1 = require("./Peer");
 const fetch_1 = require("./fetch");
-const MSG_START_SESSION = '_start_';
-//const MSG_START_SESSION = '_start_network_delay_test_;200_hkghjgkdfhgjdfhkgjd';
-const MSG_END_SESSION = '_end_';
-//const MSG_END_SESSION = '_end_test_';
 //const MSG_SYNC_KEY = 'sync';
 const MSG_TYPE_CTRL_KEY = 'ctrl';
 const MSG_TYPE_DATA_KEY = 'data';
@@ -29,7 +25,7 @@ class WSEventStream extends EventStream_1.EventStream {
         this.counter = 0;
         this.retryCounter = 0;
         this.wsTimeout = 0;
-        this.pendingStart = false;
+        this.pendingCommandACKs = new Map();
     }
     withConfig(config) {
         this.wsStreamConfig = config;
@@ -76,7 +72,7 @@ class WSEventStream extends EventStream_1.EventStream {
     onConnected(selectedPeer) {
         this.getStatusMonitor().clearErrorState();
         let eventCode = selectedPeer.getPendingEventCode();
-        if (this.pendingStart && eventCode != null) {
+        if (eventCode != null && this.pendingCommandACKs.get(eventCode) !== undefined) {
             this.startSession(selectedPeer, eventCode, true);
         }
         console.log('Connected to ' + selectedPeer.getPeerName());
@@ -91,9 +87,6 @@ class WSEventStream extends EventStream_1.EventStream {
     }
     onStatus(msg) {
         this.getStatusMonitor().setStatusMessage(msg);
-    }
-    isPendingStart() {
-        return this.pendingStart;
     }
     registerConnection(url, socket) {
         if (url != null && socket != null) {
@@ -187,17 +180,17 @@ class WSEventStream extends EventStream_1.EventStream {
         this.getStatusMonitor().clearErrorState();
         if (this.ws != null && this.ws.OPEN) {
             if (reset) {
-                this.retryCounter = 0;
-                this.pendingStart = true;
+                this.pendingCommandACKs.set(eventCode, 0);
             }
-            this.ws.send(this.packMsg(MSG_START_SESSION + ';' + eventCode, selectedPeer));
+            this.ws.send(this.packMsg(eventCode, selectedPeer));
             this.onStatus('Starting a new session....');
             let thiz = this;
             setInterval(function () {
-                if (thiz.pendingStart && thiz.retryCounter < MAX_RETRIES) {
+                let retryCounter = thiz.pendingCommandACKs.get(eventCode);
+                if (retryCounter !== undefined && retryCounter < MAX_RETRIES) {
                     thiz.onStatus('startSession(): retry #' + thiz.retryCounter);
                     thiz.startSession(selectedPeer, eventCode, false);
-                    thiz.retryCounter++;
+                    thiz.pendingCommandACKs.set(eventCode, retryCounter + 1);
                 }
             }, 3000);
         }
@@ -210,14 +203,14 @@ class WSEventStream extends EventStream_1.EventStream {
             this.startSession(selectedPeer, eventCode, true);
         }
         else {
-            this.pendingStart = true;
+            this.pendingCommandACKs.set(eventCode, 0);
             this.initiateWSSession(selectedPeer, eventCode);
             console.log('---pending start...');
         }
     }
-    stop(selectedPeer) {
+    stop(selectedPeer, eventCode) {
         if (this.ws != null) {
-            this.ws.send(this.packMsg(MSG_END_SESSION, selectedPeer));
+            this.ws.send(this.packMsg(eventCode, selectedPeer));
             if (!this.wsStreamConfig.keepAlive) {
                 let _ws = this.ws;
                 setTimeout(() => {
@@ -228,7 +221,6 @@ class WSEventStream extends EventStream_1.EventStream {
             this.onStatus('Requested SESSION STOP');
         }
         this.counter = 0;
-        this.pendingStart = false;
     }
     sendTo(msg, selectedPeer) {
         this.sendMsg(this.packMsg(msg, selectedPeer));
@@ -244,15 +236,9 @@ class WSEventStream extends EventStream_1.EventStream {
     }
     handleCtrlEvent(evt) {
         if (evt.ctrl !== undefined) {
-            if (evt.ctrl == MSG_START_SESSION.split(';')[0]) {
-                if (this.pendingStart) {
-                    this.onStatus('Session in progress...');
-                }
-                this.pendingStart = false;
-            }
-            else if (evt.ctrl == MSG_END_SESSION) {
-                this.pendingStart = false;
-                this.onStatus('Session ended.');
+            if (this.pendingCommandACKs.has(evt.ctrl) && this.pendingCommandACKs.get(evt.ctrl) !== undefined) {
+                this.onStatus('Session in progress...');
+                this.pendingCommandACKs.delete(evt.ctrl);
             }
         }
     }
@@ -274,7 +260,6 @@ class WSEventStream extends EventStream_1.EventStream {
         else {
             this.routeEvent(JSON.parse(JSON.stringify(obj)), eventGroup);
         }
-        console.log(obj);
     }
 }
 exports.WSEventStream = WSEventStream;
