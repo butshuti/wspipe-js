@@ -61,4 +61,8 @@ export class EventStream {
     stop(dstPeer: Peer, eventCode: string): void {
         console.log(eventCode + ': dstPeer => ' + dstPeer);
     }
+
+    testConnectivity(url: string): Promise<Response> {
+        throw new Error('Cannot check connectivity to ' + url + ': Not implemented.');
+    }
 }

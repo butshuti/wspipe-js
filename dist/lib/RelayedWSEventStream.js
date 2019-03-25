@@ -160,8 +160,8 @@ class RelayedWSEventStream extends WSEventStream_1.WSEventStream {
         super.startSession(selectedPeer, eventCode, reset);
     }
     stop(selectedPeer, eventCode) {
-        this.unsubscribeFromSessionEvents();
         super.stop(selectedPeer, eventCode);
+        this.unsubscribeFromSessionEvents();
     }
     queryConnectedPeers() {
         this.onStatus('Updating connected devices...');
@@ -184,6 +184,38 @@ class RelayedWSEventStream extends WSEventStream_1.WSEventStream {
         if (peer != null && !this.currentPeers.has(peer)) {
             this.currentPeers.add(this.parsePeerAddress(peer));
             this.onPeersChanged();
+        }
+    }
+    testConnectivity(url) {
+        let testWS;
+        try {
+            testWS = new WebSocket(url.replace('http', 'ws'));
+            if (testWS.readyState == testWS.OPEN) {
+                try {
+                    testWS.close();
+                }
+                catch (err) { }
+                return Promise.resolve(new Response());
+            }
+            else {
+                let success = false;
+                testWS.onerror = (evt) => {
+                    success = false;
+                };
+                testWS.onopen = () => {
+                    success = true;
+                };
+                return new Promise(resolve => {
+                    setTimeout(() => {
+                        console.error('RESOLVED? S/', success);
+                        resolve(new Response(null, { headers: {}, status: success ? 200 : 400, statusText: success ? 'OK' : 'Connection failed.' }));
+                    }, 2000);
+                });
+            }
+        }
+        catch (err) {
+            console.error('wwwwwwwwwwwwww', err);
+            return Promise.resolve(new Response(null, { headers: {}, status: 400, statusText: err.message }));
         }
     }
     initiateWSSession(selectedPeer) {

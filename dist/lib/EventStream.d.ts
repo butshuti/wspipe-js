@@ -14,4 +14,5 @@ export declare class EventStream {
     broadcast(evtIndex: number, obj: JSON): void;
     start(dstPeer: Peer, eventCode: string): void;
     stop(dstPeer: Peer, eventCode: string): void;
+    testConnectivity(url: string): Promise<Response>;
 }

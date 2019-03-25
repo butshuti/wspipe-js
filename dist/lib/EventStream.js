@@ -48,5 +48,8 @@ class EventStream {
     stop(dstPeer, eventCode) {
         console.log(eventCode + ': dstPeer => ' + dstPeer);
     }
+    testConnectivity(url) {
+        throw new Error('Cannot check connectivity to ' + url + ': Not implemented.');
+    }
 }
 exports.EventStream = EventStream;
