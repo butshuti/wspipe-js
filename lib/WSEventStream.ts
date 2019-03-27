@@ -13,7 +13,7 @@ const SERVICE_CONFIG_PORT_KEY = 'port';
 const SERVICE_CONFIG_SCHEME_KEY = 'scheme';
 const SERVICE_CONFIG_PATH_KEY = 'path';
 const SERVICE_CONFIG_PROTOCOL_KEY = 'protocol';
-const SERVICE_CONFIG_NODE_NAME_KEY = 'node_name';
+const SERVICE_CONFIG_NODE_NAME_KEY = 'nodeName';
 
 const DEFAULT_STREAM_PROTOCOL = 'p2p';
 
