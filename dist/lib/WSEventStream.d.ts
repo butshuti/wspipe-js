@@ -3,6 +3,14 @@ import { EventHandler } from './EventHandler';
 import { WSEventStreamConfig } from './WSEventStreamConfig';
 import { Peer } from './Peer';
 import { StatusMonitor } from './StatusMonitor';
+export interface StreamDescriptor {
+    port: number;
+    scheme: string;
+    path: string;
+    protocol: string;
+    nodeName: string;
+    isDirect: Function;
+}
 export declare class WSEventStream extends EventStream {
     ws: WebSocket | null;
     counter: number;
@@ -13,8 +21,9 @@ export declare class WSEventStream extends EventStream {
     constructor(config: WSEventStreamConfig, handler: EventHandler | null, statusMonitor: StatusMonitor | null);
     withConfig(config: WSEventStreamConfig): WSEventStream;
     getEventStreamConfig(): WSEventStreamConfig;
+    static getStreamDescriptor(url: string): Promise<StreamDescriptor>;
     initiateWSSession(selectedPeer: Peer, eventCode: string): void;
-    buildWSURL(scheme: string, hostname: string, port: number, path: string): string;
+    buildWSURL(scheme: string, baseURL: URL, port: number, path: string): string;
     onConnected(selectedPeer: Peer): void;
     onDisconnected(selectedPeer: Peer): void;
     onError(msg: string): void;

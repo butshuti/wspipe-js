@@ -207,14 +207,12 @@ class RelayedWSEventStream extends WSEventStream_1.WSEventStream {
                 };
                 return new Promise(resolve => {
                     setTimeout(() => {
-                        console.error('RESOLVED? S/', success);
                         resolve(new Response(null, { headers: {}, status: success ? 200 : 400, statusText: success ? 'OK' : 'Connection failed.' }));
                     }, 2000);
                 });
             }
         }
         catch (err) {
-            console.error('wwwwwwwwwwwwww', err);
             return Promise.resolve(new Response(null, { headers: {}, status: 400, statusText: err.message }));
         }
     }
@@ -230,7 +228,7 @@ class RelayedWSEventStream extends WSEventStream_1.WSEventStream {
         this.onStatus('Connecting to ' + dstLocation);
         console.log('RelayedWSEventStream: CONECTING TO ' + dstLocation);
         let scheme = this.useTLS || dstLocation.href.startsWith('https') ? 'wss' : 'ws';
-        let url = this.buildWSURL(scheme, dstLocation.hostname, port, this.wsStreamConfig.path);
+        let url = this.buildWSURL(scheme, dstLocation, port, this.wsStreamConfig.path);
         let peerName = selectedPeer != null ? selectedPeer.getPeerName() : '[UNNAMED-DEVICE]';
         let peer = new Peer_1.Peer(peerName, new URL('', url), selectedPeer.getPeerAddress());
         this.startWS(peer);
@@ -284,7 +282,7 @@ class RelayedWSEventStream extends WSEventStream_1.WSEventStream {
                         this.registerPeer(src);
                     }
                 }
-                //this.queryConnectedPeers();
+                this.queryConnectedPeers();
                 this.sessionState = STATE_ACTIVE;
             }
         }

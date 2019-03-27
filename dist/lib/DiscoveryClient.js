@@ -1,9 +1,9 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 const RelayedWSEventStream_1 = require("./RelayedWSEventStream");
+const WSEventStream_1 = require("./WSEventStream");
 const WSEventStreamConfig_1 = require("./WSEventStreamConfig");
 const Peer_1 = require("./Peer");
-const ES_PATH = '/es';
 exports.SERVER_CONNECTIVITY_STATUS_CODES = {
     UNKNOWN: -1,
     ONLINE: 0,
@@ -18,10 +18,9 @@ class PeersChangeListener {
 exports.PeersChangeListener = PeersChangeListener;
 class DiscoveryClient {
     constructor(url, peersListener) {
-        this.streamConfig = new WSEventStreamConfig_1.WSEventStreamConfig(url, true).withPath(ES_PATH);
+        this.relayedEventStream = null;
+        this.streamConfig = new WSEventStreamConfig_1.WSEventStreamConfig(url, true);
         this.peersChangeListener = peersListener;
-        RelayedWSEventStream_1.RelayedWSEventStream.initialize(this.streamConfig);
-        this.eventStream = RelayedWSEventStream_1.RelayedWSEventStream.getInstance();
         this.active = false;
         this.onPeersChange = this.onPeersChange.bind(this);
         this.uri = this.streamConfig.getURI();
@@ -38,20 +37,66 @@ class DiscoveryClient {
         });
     }
     async start(statusCallback) {
-        let peer = new Peer_1.Peer('', this.streamConfig.dstLocation, null).withConfig(this.streamConfig);
-        this.eventStream.initiateWSSession(peer);
-        this.eventStream.registerPeersChangeCallback(this.onPeersChange);
-        this.active = true;
         if (statusCallback != null) {
             statusCallback('STARTING...', false);
         }
-        return peer.isReachable();
+        else {
+            console.log('STARTING DISCOVERY CLIENT....');
+        }
+        return new Promise((resolve, reject) => {
+            WSEventStream_1.WSEventStream.getStreamDescriptor(this.streamConfig.dstLocation.href).then(streamDescriptor => {
+                console.log('STREAM_DESCR', streamDescriptor);
+                this.streamConfig = this.streamConfig.withPath(streamDescriptor.path);
+                let peerAddress = streamDescriptor.isDirect() ? null : this.streamConfig.getURI();
+                let peerName = streamDescriptor.nodeName;
+                let peer = new Peer_1.Peer(peerName, this.streamConfig.dstLocation, peerAddress).withConfig(this.streamConfig);
+                if (streamDescriptor.isDirect()) {
+                    this.registerPeers([peer]);
+                }
+                else {
+                    RelayedWSEventStream_1.RelayedWSEventStream.initialize(this.streamConfig);
+                    let eventStream = RelayedWSEventStream_1.RelayedWSEventStream.getInstance();
+                    eventStream.initiateWSSession(peer);
+                    eventStream.registerPeersChangeCallback(this.onPeersChange);
+                }
+                this.active = true;
+                if (statusCallback != null) {
+                    statusCallback('Registering ' + peer.getPeerName(), false);
+                }
+                resolve(true);
+            }).catch(err => {
+                console.error(err);
+                reject(err);
+            });
+        });
+    }
+    static async test(url) {
+        return new Promise(resolve => {
+            WSEventStream_1.WSEventStream.getStreamDescriptor(url).then(streamDescriptor => {
+                console.log('STREAM DESCR?', streamDescriptor);
+                resolve(true);
+            }).catch(_ => {
+                resolve(false);
+            });
+        });
     }
     async checkStatus() {
-        return this.eventStream.testConnectivity(this.streamConfig.getURI()).then(httpResponse => {
-            return { code: DiscoveryClient.convertHttpCode(httpResponse.status), statusMsg: httpResponse.statusText };
-        }).catch(err => {
-            return { code: exports.SERVER_CONNECTIVITY_STATUS_CODES.UNREACHABLE, statusMsg: err.message };
+        if (this.relayedEventStream) {
+            return await this.relayedEventStream.testConnectivity(this.streamConfig.getURI()).then(httpResponse => {
+                return { code: DiscoveryClient.convertHttpCode(httpResponse.status), statusMsg: httpResponse.statusText };
+            }).catch(err => {
+                return { code: exports.SERVER_CONNECTIVITY_STATUS_CODES.UNREACHABLE, statusMsg: err.message };
+            });
+        }
+        return new Promise(resolve => {
+            DiscoveryClient.test(this.streamConfig.dstLocation.href).then(success => {
+                if (success) {
+                    resolve({ code: exports.SERVER_CONNECTIVITY_STATUS_CODES.ONLINE, statusMsg: 'Connected' });
+                }
+                else {
+                    resolve({ code: exports.SERVER_CONNECTIVITY_STATUS_CODES.UNREACHABLE, statusMsg: 'Offline' });
+                }
+            });
         });
     }
     static convertHttpCode(code) {
@@ -66,12 +111,13 @@ class DiscoveryClient {
         }
         return exports.SERVER_CONNECTIVITY_STATUS_CODES.UNKNOWN;
     }
-    /*stop(): void{
-        this.eventStream.stop();
-        this.active = false;
-    }*/
     extractPeerName(label) {
         return label.indexOf('@') < 0 ? label : label.substr(0, label.indexOf('@'));
+    }
+    registerPeers(peerUpdates) {
+        if (this.peersChangeListener != null) {
+            this.peersChangeListener.onNewPeers(peerUpdates);
+        }
     }
     onPeersChange(peers) {
         console.log({ 'PEERS_CHG': peers });
@@ -79,9 +125,7 @@ class DiscoveryClient {
             let peerUpdates = peers.map((element) => new Peer_1.Peer(this.extractPeerName(element), new URL('', this.uri), element));
             peerUpdates = peerUpdates.filter((peer, index, arr) => arr.findIndex((val) => val.getPeerName() == peer.getPeerName()) == index);
             peerUpdates.forEach(peer => peer.withConfig(this.streamConfig));
-            if (this.peersChangeListener != null) {
-                this.peersChangeListener.onNewPeers(peerUpdates);
-            }
+            this.registerPeers(peerUpdates);
         }
     }
     isActive() {

@@ -20,6 +20,5 @@ export declare class Peer {
     getPeerLocation(): string;
     markAsReachable(): void;
     isMarkedAsReachable(): boolean;
-    isReachable(): Promise<boolean>;
     isDirect(): boolean;
 }

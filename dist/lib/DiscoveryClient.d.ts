@@ -15,17 +15,19 @@ export declare class PeersChangeListener {
     onNewPeers(peers: Peer[]): void;
 }
 export declare class DiscoveryClient {
-    eventStream: RelayedWSEventStream;
     peersChangeListener: PeersChangeListener;
     active: boolean;
     uri: string;
     streamConfig: WSEventStreamConfig;
+    relayedEventStream: RelayedWSEventStream | null;
     constructor(url: URL, peersListener: PeersChangeListener);
     startAsync(): Promise<URL>;
     start(statusCallback: Function | null): Promise<boolean>;
+    static test(url: string): Promise<boolean>;
     checkStatus(): Promise<ServerStatus>;
-    static convertHttpCode(code: number): number;
-    extractPeerName(label: string): string;
+    private static convertHttpCode(code);
+    private extractPeerName(label);
+    private registerPeers(peerUpdates);
     onPeersChange(peers: string[]): void;
     isActive(): boolean;
 }

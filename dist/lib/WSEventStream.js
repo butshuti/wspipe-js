@@ -10,9 +10,13 @@ const API_WS_REQUEST_PATH = '/api/ws';
 const SERVICE_CONFIG_PORT_KEY = 'port';
 const SERVICE_CONFIG_SCHEME_KEY = 'scheme';
 const SERVICE_CONFIG_PATH_KEY = 'path';
+const SERVICE_CONFIG_PROTOCOL_KEY = 'protocol';
+const SERVICE_CONFIG_NODE_NAME_KEY = 'node_name';
+const DEFAULT_STREAM_PROTOCOL = 'p2p';
 const MAX_RETRIES = 3;
 const CONN_TIMEOUT = 5000;
 const OPEN_SOCKETS = new Map();
+;
 ;
 class WSEventStream extends EventStream_1.EventStream {
     constructor(config, handler, statusMonitor) {
@@ -34,40 +38,57 @@ class WSEventStream extends EventStream_1.EventStream {
     getEventStreamConfig() {
         return this.wsStreamConfig;
     }
+    static async getStreamDescriptor(url) {
+        url = url.replace(/\/$/g, '') + API_WS_REQUEST_PATH;
+        return new Promise((resolve, reject) => {
+            fetch_1.timedFetch(url, {}, CONN_TIMEOUT).then((response) => {
+                if (response.ok) {
+                    return response.json();
+                }
+                else {
+                    throw new Error(response.statusText);
+                }
+            }).then((json) => {
+                if (json.hasOwnProperty(SERVICE_CONFIG_PORT_KEY) && json.hasOwnProperty(SERVICE_CONFIG_SCHEME_KEY)
+                    && json.hasOwnProperty(SERVICE_CONFIG_PATH_KEY)) {
+                    resolve({
+                        port: Number.parseInt(json[SERVICE_CONFIG_PORT_KEY]),
+                        scheme: json[SERVICE_CONFIG_SCHEME_KEY],
+                        path: json[SERVICE_CONFIG_PATH_KEY],
+                        protocol: json[SERVICE_CONFIG_PROTOCOL_KEY] || DEFAULT_STREAM_PROTOCOL,
+                        nodeName: json[SERVICE_CONFIG_NODE_NAME_KEY] || new URL(url).hostname,
+                        isDirect: () => (json[SERVICE_CONFIG_PROTOCOL_KEY] || DEFAULT_STREAM_PROTOCOL) === DEFAULT_STREAM_PROTOCOL
+                    });
+                }
+                else {
+                    reject(new Error('Received incomplete configuration response.'));
+                }
+            }).catch(err => {
+                reject(err);
+            });
+        });
+    }
     initiateWSSession(selectedPeer, eventCode) {
         let dstLocation = selectedPeer.getURL();
         if (dstLocation == null) {
             dstLocation = this.wsStreamConfig.dstLocation;
         }
-        let thiz = this;
-        fetch_1.timedFetch(dstLocation.origin + this.wsStreamConfig.path, {}, CONN_TIMEOUT).then((response) => {
-            if (response.ok) {
-                return response.json();
-            }
-            else {
-                throw new Error('Received ' + response.status + ' from server: ' + response.statusText);
-            }
-        }).then((json) => {
-            if (json.hasOwnProperty(SERVICE_CONFIG_PORT_KEY) && json.hasOwnProperty(SERVICE_CONFIG_SCHEME_KEY)
-                && json.hasOwnProperty(SERVICE_CONFIG_PATH_KEY)) {
-                let url = thiz.buildWSURL(json[SERVICE_CONFIG_SCHEME_KEY], dstLocation.hostname, json[SERVICE_CONFIG_PORT_KEY], json[SERVICE_CONFIG_PATH_KEY]);
-                let peer = new Peer_1.Peer('', new URL('', url), null);
-                peer.markPending(eventCode);
-                thiz.startWS(peer);
-            }
-            else {
-                console.error('Received incomplete configuration response.');
-            }
+        WSEventStream.getStreamDescriptor(dstLocation.href).then((streamDescr) => {
+            let url = this.buildWSURL(streamDescr.scheme, dstLocation, streamDescr.port, streamDescr.path);
+            let peer = new Peer_1.Peer('', new URL('', url), null);
+            peer.markPending(eventCode);
+            this.startWS(peer);
         }).catch((err) => {
             console.error(err);
-            thiz.onError('Error connecting to ' + dstLocation);
+            this.onError('Error connecting to ' + selectedPeer.getURI());
         });
     }
-    buildWSURL(scheme, hostname, port, path) {
-        if (path[0] == '/') {
-            path = path.substring(1);
-        }
-        return scheme + '://' + (hostname + ':' + port + '/' + path).replace(/\/+/g, '/');
+    buildWSURL(scheme, baseURL, port, path) {
+        let ret = new URL(path.replace(/^\/+/g, '/'), baseURL);
+        ret.port = '' + port;
+        ret.protocol = scheme.replace(/:$/g, '');
+        +':';
+        return ret.href;
     }
     onConnected(selectedPeer) {
         this.getStatusMonitor().clearErrorState();

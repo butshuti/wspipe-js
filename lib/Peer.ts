@@ -69,24 +69,6 @@ export class Peer {
         return this.reachable;
     }
 
-    async isReachable(): Promise<boolean> {
-        if(this.url == null){
-            return Promise.resolve(false);
-        }
-        let thiz: Peer = this;
-        let ping: string = Math.random().toString(36).toString();
-        return fetch(this.url.href + 'echo?ping=' + ping, {method: 'GET'}).then(function(response){
-            return response.text();
-        }).then(function(text){
-            thiz.reachable = text == ping;
-            return thiz.reachable;
-        }).catch(function(e){
-            console.error(e);
-            thiz.reachable = false;
-            return thiz.reachable;
-        });
-    }
-
     isDirect(): boolean {
         return this.peerAddress == null;
     }
