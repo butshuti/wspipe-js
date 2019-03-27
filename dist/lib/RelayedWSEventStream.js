@@ -282,7 +282,6 @@ class RelayedWSEventStream extends WSEventStream_1.WSEventStream {
                         this.registerPeer(src);
                     }
                 }
-                this.queryConnectedPeers();
                 this.sessionState = STATE_ACTIVE;
             }
         }

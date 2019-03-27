@@ -345,7 +345,6 @@ export class RelayedWSEventStream extends WSEventStream{
                         this.registerPeer(src);
                     }
                 }
-                this.queryConnectedPeers();
                 this.sessionState = STATE_ACTIVE;
             }
         }else if(eventType == PROTO_EVENT_TYPE_DISCOVERY){
