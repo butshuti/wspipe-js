@@ -40,7 +40,6 @@ export declare class RelayedWSEventStream extends WSEventStream {
     joinPeerSession(peer: string): void;
     onPeersChanged(): void;
     registerPeer(peer: string): void;
-    testConnectivity(url: string): Promise<Response>;
     initiateWSSession(selectedPeer: Peer): void;
     private isValidSessionMessage(obj);
     private isSensorLabel(label);

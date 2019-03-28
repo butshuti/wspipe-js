@@ -12,7 +12,7 @@ class NoOpStatusMonitor implements StatusMonitor {
 
     }
 }
-export class EventStream {
+export abstract class EventStream {
     handler: EventHandler|null;
     statusMonitor: StatusMonitor|null;
     counter: number;
@@ -20,10 +20,6 @@ export class EventStream {
         this.handler = handler;
         this.statusMonitor = statusMonitor;
         this.counter = 0;
-    }
-
-    getCounter(): number{
-        return this.counter++;
     }
 
     getEventHandler(eventGroup: string): EventHandler | null {
@@ -44,25 +40,15 @@ export class EventStream {
         }
     }
 
-    sendTo(payload: string, dstPeer: Peer): void {
-        console.log(payload + ': dstPeer => ' + dstPeer);
-    }
-
     broadcast(evtIndex:number, obj: JSON): void{
         if(this.handler != null){
             this.handler.handleEvent(evtIndex, obj);
         }
     }
 
-    start(dstPeer: Peer, eventCode: string): void {
-        console.log(eventCode + ': dstPeer => ' + dstPeer);
-    }
+    abstract sendTo(payload: string, dstPeer: Peer): void;
 
-    stop(dstPeer: Peer, eventCode: string): void {
-        console.log(eventCode + ': dstPeer => ' + dstPeer);
-    }
+    abstract start(dstPeer: Peer, eventCode: string): void;
 
-    testConnectivity(url: string): Promise<Response> {
-        throw new Error('Cannot check connectivity to ' + url + ': Not implemented.');
-    }
+    abstract stop(dstPeer: Peer, eventCode: string): void;
 }

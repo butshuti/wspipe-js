@@ -16,9 +16,6 @@ class EventStream {
         this.statusMonitor = statusMonitor;
         this.counter = 0;
     }
-    getCounter() {
-        return this.counter++;
-    }
     getEventHandler(eventGroup) {
         if (eventGroup != null) {
             return this.handler != null ? this.handler : null;
@@ -34,22 +31,10 @@ class EventStream {
             handler.handleEvent(this.counter++, obj);
         }
     }
-    sendTo(payload, dstPeer) {
-        console.log(payload + ': dstPeer => ' + dstPeer);
-    }
     broadcast(evtIndex, obj) {
         if (this.handler != null) {
             this.handler.handleEvent(evtIndex, obj);
         }
-    }
-    start(dstPeer, eventCode) {
-        console.log(eventCode + ': dstPeer => ' + dstPeer);
-    }
-    stop(dstPeer, eventCode) {
-        console.log(eventCode + ': dstPeer => ' + dstPeer);
-    }
-    testConnectivity(url) {
-        throw new Error('Cannot check connectivity to ' + url + ': Not implemented.');
     }
 }
 exports.EventStream = EventStream;

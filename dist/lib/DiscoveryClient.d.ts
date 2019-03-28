@@ -1,4 +1,3 @@
-import { RelayedWSEventStream } from './RelayedWSEventStream';
 import { WSEventStreamConfig } from './WSEventStreamConfig';
 import { Peer } from './Peer';
 export declare const SERVER_CONNECTIVITY_STATUS_CODES: {
@@ -16,10 +15,8 @@ export declare class PeersChangeListener {
 }
 export declare class DiscoveryClient {
     peersChangeListener: PeersChangeListener;
-    active: boolean;
     uri: string;
     streamConfig: WSEventStreamConfig;
-    relayedEventStream: RelayedWSEventStream | null;
     constructor(url: URL, peersListener: PeersChangeListener);
     startAsync(): Promise<URL>;
     start(statusCallback: Function | null): Promise<boolean>;
@@ -29,5 +26,4 @@ export declare class DiscoveryClient {
     private extractPeerName(label);
     private registerPeers(peerUpdates);
     onPeersChange(peers: string[]): void;
-    isActive(): boolean;
 }

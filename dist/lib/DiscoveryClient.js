@@ -18,10 +18,8 @@ class PeersChangeListener {
 exports.PeersChangeListener = PeersChangeListener;
 class DiscoveryClient {
     constructor(url, peersListener) {
-        this.relayedEventStream = null;
         this.streamConfig = new WSEventStreamConfig_1.WSEventStreamConfig(url, true);
         this.peersChangeListener = peersListener;
-        this.active = false;
         this.onPeersChange = this.onPeersChange.bind(this);
         this.uri = this.streamConfig.getURI();
     }
@@ -40,12 +38,8 @@ class DiscoveryClient {
         if (statusCallback != null) {
             statusCallback('STARTING...', false);
         }
-        else {
-            console.log('STARTING DISCOVERY CLIENT....');
-        }
         return new Promise((resolve, reject) => {
             WSEventStream_1.WSEventStream.getStreamDescriptor(this.streamConfig.dstLocation.href).then(streamDescriptor => {
-                console.log('STREAM_DESCR', streamDescriptor);
                 this.streamConfig = this.streamConfig.withPath(streamDescriptor.path);
                 let peerAddress = streamDescriptor.isDirect() ? null : this.streamConfig.getURI();
                 let peerName = streamDescriptor.nodeName;
@@ -59,7 +53,6 @@ class DiscoveryClient {
                     eventStream.initiateWSSession(peer);
                     eventStream.registerPeersChangeCallback(this.onPeersChange);
                 }
-                this.active = true;
                 if (statusCallback != null) {
                     statusCallback('Registering ' + peer.getPeerName(), false);
                 }
@@ -73,7 +66,6 @@ class DiscoveryClient {
     static async test(url) {
         return new Promise(resolve => {
             WSEventStream_1.WSEventStream.getStreamDescriptor(url).then(streamDescriptor => {
-                console.log('STREAM DESCR?', streamDescriptor);
                 resolve(true);
             }).catch(_ => {
                 resolve(false);
@@ -81,13 +73,6 @@ class DiscoveryClient {
         });
     }
     async checkStatus() {
-        if (this.relayedEventStream) {
-            return await this.relayedEventStream.testConnectivity(this.streamConfig.getURI()).then(httpResponse => {
-                return { code: DiscoveryClient.convertHttpCode(httpResponse.status), statusMsg: httpResponse.statusText };
-            }).catch(err => {
-                return { code: exports.SERVER_CONNECTIVITY_STATUS_CODES.UNREACHABLE, statusMsg: err.message };
-            });
-        }
         return new Promise(resolve => {
             DiscoveryClient.test(this.streamConfig.dstLocation.href).then(success => {
                 if (success) {
@@ -127,9 +112,6 @@ class DiscoveryClient {
             peerUpdates.forEach(peer => peer.withConfig(this.streamConfig));
             this.registerPeers(peerUpdates);
         }
-    }
-    isActive() {
-        return this.active;
     }
 }
 exports.DiscoveryClient = DiscoveryClient;
