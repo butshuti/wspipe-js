@@ -17,6 +17,7 @@ export declare class WSEventStream extends EventStream {
     retryCounter: number;
     wsStreamConfig: WSEventStreamConfig;
     pendingCommandACKs: Map<string, number>;
+    activeSessions: Map<string, string>;
     wsTimeout: number;
     constructor(config: WSEventStreamConfig, handler: EventHandler | null, statusMonitor: StatusMonitor | null);
     withConfig(config: WSEventStreamConfig): WSEventStream;

@@ -15,6 +15,7 @@ const SERVICE_CONFIG_NODE_NAME_KEY = 'nodeName';
 const DEFAULT_STREAM_PROTOCOL = 'p2p';
 const MAX_RETRIES = 3;
 const CONN_TIMEOUT = 5000;
+const WS_RECONNECT_INTERVAL = 3000;
 const OPEN_SOCKETS = new Map();
 ;
 ;
@@ -30,6 +31,7 @@ class WSEventStream extends EventStream_1.EventStream {
         this.retryCounter = 0;
         this.wsTimeout = 0;
         this.pendingCommandACKs = new Map();
+        this.activeSessions = new Map();
     }
     withConfig(config) {
         this.wsStreamConfig = config;
@@ -75,7 +77,7 @@ class WSEventStream extends EventStream_1.EventStream {
         }
         WSEventStream.getStreamDescriptor(dstLocation.href).then((streamDescr) => {
             let url = this.buildWSURL(streamDescr.scheme, dstLocation, streamDescr.port, streamDescr.path);
-            let peer = new Peer_1.Peer('', new URL('', url), null);
+            let peer = new Peer_1.Peer(selectedPeer.getPeerName(), new URL('', url), null);
             peer.markPending(eventCode);
             this.startWS(peer);
         }).catch((err) => {
@@ -91,22 +93,34 @@ class WSEventStream extends EventStream_1.EventStream {
         return ret.href;
     }
     onConnected(selectedPeer) {
+        this.onStatus('Connected to ' + selectedPeer.getPeerName());
         this.getStatusMonitor().clearErrorState();
         let eventCode = selectedPeer.getPendingEventCode();
         if (eventCode != null && this.pendingCommandACKs.get(eventCode) !== undefined) {
             this.startSession(selectedPeer, eventCode, true);
         }
-        console.log('Connected to ' + selectedPeer.getPeerName());
     }
     onDisconnected(selectedPeer) {
+        this.onError('Disconnected from ' + selectedPeer.getPeerName());
         this.ws = null;
-        console.log('Disconnected from ' + selectedPeer.getPeerName() + '@' + selectedPeer.getURI());
+        if (this.activeSessions.has(selectedPeer.getPeerName())) {
+            let eventCode = this.activeSessions.get(selectedPeer.getPeerName());
+            if (eventCode) {
+                this.onError('Attempting to reconnect to ' + selectedPeer.getPeerName() + ' in ' + (WS_RECONNECT_INTERVAL / 1000) + ' seconds');
+                setTimeout(() => {
+                    this.startWS(selectedPeer);
+                }, WS_RECONNECT_INTERVAL);
+                return;
+            }
+        }
+        console.log('No active session: reconnection will not be attempted.');
     }
     onError(msg) {
         console.error(msg);
         this.getStatusMonitor().setErrorMessage(msg);
     }
     onStatus(msg) {
+        console.log(msg);
         this.getStatusMonitor().setStatusMessage(msg);
     }
     registerConnection(url, socket) {
@@ -162,6 +176,7 @@ class WSEventStream extends EventStream_1.EventStream {
         let url = selectedPeer.getURL().href;
         console.log('WSEventStream::: Connecting to ' + url + (this.isConnected(url) ? ' -- CONNECTION EXISTS.(' + this.ws + ')' : '...'));
         this.clearWSConnectionTimeout();
+        this.onStatus('Connecting to ' + selectedPeer.getPeerName());
         if (this.isConnected(url)) {
             this.ws = this.getConnectionSocket(url);
         }
@@ -220,6 +235,7 @@ class WSEventStream extends EventStream_1.EventStream {
         }
     }
     start(selectedPeer, eventCode) {
+        this.activeSessions.set(selectedPeer.getPeerName(), eventCode);
         if (this.ws != null && this.ws.readyState == WebSocket.OPEN) {
             this.startSession(selectedPeer, eventCode, true);
         }
@@ -230,6 +246,7 @@ class WSEventStream extends EventStream_1.EventStream {
         }
     }
     stop(selectedPeer, eventCode) {
+        this.activeSessions.delete(selectedPeer.getPeerName());
         if (this.ws != null) {
             this.ws.send(this.packMsg(eventCode, selectedPeer));
             if (!this.wsStreamConfig.keepAlive) {

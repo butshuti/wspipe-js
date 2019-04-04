@@ -20,6 +20,7 @@ const DEFAULT_STREAM_PROTOCOL = 'p2p';
 const MAX_RETRIES = 3;
 
 const CONN_TIMEOUT = 5000;
+const WS_RECONNECT_INTERVAL = 3000;
 
 const OPEN_SOCKETS: Map<string, WebSocket> = new Map();
 
@@ -44,6 +45,7 @@ export class WSEventStream extends EventStream {
     retryCounter: number;
     wsStreamConfig: WSEventStreamConfig;
     pendingCommandACKs: Map<string, number>;
+    activeSessions: Map<string, string>;
     wsTimeout: number;
     constructor(config: WSEventStreamConfig,  handler: EventHandler|null, statusMonitor: StatusMonitor|null){
         super(handler, statusMonitor);
@@ -56,6 +58,7 @@ export class WSEventStream extends EventStream {
         this.retryCounter = 0;
         this.wsTimeout= 0;
         this.pendingCommandACKs = new Map();
+        this.activeSessions = new Map();
     }
 
     withConfig(config: WSEventStreamConfig): WSEventStream {
@@ -103,7 +106,7 @@ export class WSEventStream extends EventStream {
         }
         WSEventStream.getStreamDescriptor(dstLocation.href).then((streamDescr) =>{
             let url: string = this.buildWSURL(streamDescr.scheme, dstLocation, streamDescr.port, streamDescr.path);
-            let peer: Peer = new Peer('', new URL('', url), null);
+            let peer: Peer = new Peer(selectedPeer.getPeerName(), new URL('', url), null);
             peer.markPending(eventCode);
             this.startWS(peer);
         }).catch((err) => {
@@ -120,17 +123,28 @@ export class WSEventStream extends EventStream {
     }
 
     onConnected(selectedPeer: Peer): void {
+        this.onStatus('Connected to ' + selectedPeer.getPeerName());
         this.getStatusMonitor().clearErrorState();
         let eventCode: string | null = selectedPeer.getPendingEventCode();
         if(eventCode != null && this.pendingCommandACKs.get(eventCode) !== undefined){
             this.startSession(selectedPeer, eventCode, true);
         }
-        console.log('Connected to ' + selectedPeer.getPeerName());
     }
 
     onDisconnected(selectedPeer: Peer): void {
+        this.onError('Disconnected from ' + selectedPeer.getPeerName());
         this.ws = null;
-        console.log('Disconnected from ' + selectedPeer.getPeerName() + '@' + selectedPeer.getURI());
+        if(this.activeSessions.has(selectedPeer.getPeerName())){
+            let eventCode: string | undefined = this.activeSessions.get(selectedPeer.getPeerName());
+            if(eventCode){
+                this.onError('Attempting to reconnect to ' + selectedPeer.getPeerName() + ' in ' + (WS_RECONNECT_INTERVAL/1000) + ' seconds');
+                setTimeout(()=> {
+                    this.startWS(selectedPeer);
+                }, WS_RECONNECT_INTERVAL);
+                return;
+            }
+        }
+        console.log('No active session: reconnection will not be attempted.');
     }
 
     onError(msg: string): void {
@@ -139,6 +153,7 @@ export class WSEventStream extends EventStream {
     }
 
     onStatus(msg: string): void {
+        console.log(msg);
         this.getStatusMonitor().setStatusMessage(msg);
     }
 
@@ -200,6 +215,7 @@ export class WSEventStream extends EventStream {
         let url: string = selectedPeer.getURL().href;
         console.log('WSEventStream::: Connecting to ' + url + (this.isConnected(url) ? ' -- CONNECTION EXISTS.(' + this.ws + ')' : '...'));
         this.clearWSConnectionTimeout();
+        this.onStatus('Connecting to ' + selectedPeer.getPeerName());
         if(this.isConnected(url)){
             this.ws = this.getConnectionSocket(url);
         }else if(this.ws != null && this.ws.url != url){
@@ -257,6 +273,7 @@ export class WSEventStream extends EventStream {
     }
 
     start(selectedPeer: Peer, eventCode: string): void {
+        this.activeSessions.set(selectedPeer.getPeerName(), eventCode);
         if(this.ws != null && this.ws.readyState == WebSocket.OPEN){
             this.startSession(selectedPeer, eventCode, true);
         }else{
@@ -267,6 +284,7 @@ export class WSEventStream extends EventStream {
     }
 
     stop(selectedPeer: Peer, eventCode: string): void {
+        this.activeSessions.delete(selectedPeer.getPeerName());
         if(this.ws != null){
             this.ws.send(this.packMsg(eventCode, selectedPeer));
             if(!this.wsStreamConfig.keepAlive){
