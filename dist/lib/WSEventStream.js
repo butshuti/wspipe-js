@@ -261,7 +261,16 @@ class WSEventStream extends EventStream_1.EventStream {
         this.counter = 0;
     }
     sendTo(msg, selectedPeer) {
-        this.sendMsg(this.packMsg(msg, selectedPeer));
+        if (this.ws != null) {
+            this.sendMsg(this.packMsg(msg, selectedPeer));
+        }
+        else {
+            this.startWS(selectedPeer);
+            this.onStatus('');
+            setTimeout(() => {
+                this.sendMsg(this.packMsg(msg, selectedPeer));
+            }, 2000);
+        }
     }
     sendMsg(msg) {
         if (this.ws != null && this.ws.OPEN) {
@@ -282,6 +291,7 @@ class WSEventStream extends EventStream_1.EventStream {
     }
     broadcastEvent(evtData, eventGroup) {
         let obj;
+        this.onStatus('');
         try {
             obj = JSON.parse(evtData);
         }

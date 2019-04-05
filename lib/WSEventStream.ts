@@ -300,7 +300,15 @@ export class WSEventStream extends EventStream {
     }
 
     sendTo(msg: string, selectedPeer: Peer): void {
-        this.sendMsg(this.packMsg(msg, selectedPeer));
+        if(this.ws != null){
+            this.sendMsg(this.packMsg(msg, selectedPeer));
+        }else{
+            this.startWS(selectedPeer);
+            this.onStatus('');
+            setTimeout(() => {
+                this.sendMsg(this.packMsg(msg, selectedPeer));
+            }, 2000);
+        }
     }
 
     sendMsg(msg: string): void {
@@ -325,6 +333,7 @@ export class WSEventStream extends EventStream {
 
     broadcastEvent(evtData: string, eventGroup: string): void {
         let obj: CtrlMessage;
+        this.onStatus('');
         try{
             obj = JSON.parse(evtData);
         }catch (e){
