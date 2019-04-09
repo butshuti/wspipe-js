@@ -152,7 +152,7 @@ class WSEventStream extends EventStream_1.EventStream {
         if (this.activeSessions.has(selectedPeer.getPeerName())) {
             let eventCode = this.activeSessions.get(selectedPeer.getPeerName());
             if (eventCode) {
-                this.onError('Attempting to reconnect to ' + selectedPeer.getPeerName() + ' in ' + (WS_RECONNECT_INTERVAL / 1000) + ' seconds');
+                this.onError('Attempting to reconnect to ' + selectedPeer.getPeerName() + ' in ' + (this.reconnectInterval / 1000) + ' seconds');
                 if (this.wsRetryTimer < 0) {
                     this.wsRetryTimer = setTimeout(() => {
                         this.wsRetryTimer = -1;
@@ -165,14 +165,12 @@ class WSEventStream extends EventStream_1.EventStream {
                 return;
             }
         }
-        console.log('No active session: reconnection will not be attempted.');
     }
     onError(msg) {
         console.error(msg);
         this.getStatusMonitor().setErrorMessage(msg);
     }
     onStatus(msg) {
-        console.log(msg);
         this.getStatusMonitor().setStatusMessage(msg);
     }
     registerConnection(url, socket) {
@@ -269,7 +267,6 @@ class WSEventStream extends EventStream_1.EventStream {
     startWS(selectedPeer) {
         this.getStatusMonitor().clearErrorState();
         let url = selectedPeer.getURL().href;
-        console.log('WSEventStream::: Connecting to ' + url + (this.isConnected(url) ? ' -- CONNECTION EXISTS.(' + this.ws + ')' : '...'));
         this.clearWSConnectionTimeout();
         this.onStatus('Connecting to ' + selectedPeer.getPeerName());
         if (this.isConnected(url)) {
@@ -295,14 +292,13 @@ class WSEventStream extends EventStream_1.EventStream {
             thiz.onConnected(selectedPeer);
         };
         this.ws.onclose = function () {
-            console.log('Closed!');
             thiz.clearConnection(ws.url);
             thiz.onDisconnected(selectedPeer);
         };
         this.ws.onmessage = function (evt) {
             thiz.lastReceivedMsg.set(peerName, Date.now());
             if (thiz.processPingPongMsg(evt.data)) {
-                console.log('PING-PONG:' + evt.data);
+                console.debug('PING-PONG:' + evt.data);
             }
             else {
                 thiz.broadcastEvent(evt.data, ws.url);
@@ -322,19 +318,17 @@ class WSEventStream extends EventStream_1.EventStream {
                 this.pendingCommandACKs.set(eventCode, 0);
             }
             this.ws.send(this.packMsg(eventCode, selectedPeer));
-            console.log('Starting a new session....');
             let thiz = this;
             setInterval(function () {
                 let retryCounter = thiz.pendingCommandACKs.get(eventCode);
                 if (retryCounter !== undefined && retryCounter < MAX_RETRIES) {
-                    console.log('startSession(): retry #' + thiz.retryCounter);
                     thiz.startSession(selectedPeer, eventCode, false);
                     thiz.pendingCommandACKs.set(eventCode, retryCounter + 1);
                 }
             }, 3000);
         }
         else {
-            console.log('Socket not open---CANNOT SEND MSG.');
+            console.debug('Socket not open---CANNOT SEND MSG.');
         }
     }
     start(selectedPeer, eventCode) {
@@ -345,7 +339,6 @@ class WSEventStream extends EventStream_1.EventStream {
         else {
             this.pendingCommandACKs.set(eventCode, 0);
             this.initiateWSSession(selectedPeer, eventCode);
-            console.log('---pending start...');
         }
     }
     stop(selectedPeer, eventCode) {
@@ -383,7 +376,6 @@ class WSEventStream extends EventStream_1.EventStream {
         }
     }
     packMsg(msg, selectedPeer) {
-        console.log('Msg: ' + msg + '=>' + selectedPeer);
         return msg;
     }
     handleCtrlEvent(evt) {

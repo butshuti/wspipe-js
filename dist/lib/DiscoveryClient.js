@@ -68,7 +68,6 @@ class DiscoveryClient {
             WSEventStream_1.WSEventStream.getStreamDescriptor(url).then(_ => {
                 resolve(true);
             }).catch(err => {
-                console.error(err);
                 resolve(false);
             });
         });

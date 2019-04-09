@@ -90,7 +90,6 @@ class RelayedWSEventStream extends WSEventStream_1.WSEventStream {
     close() {
     }
     onConnected(selectedPeer) {
-        console.log('RelayedWSEventStream: onConnected...');
         this.onStatus('Connected');
         this.queryConnectedPeers();
         this.lastConnectionURL = selectedPeer.getURL();
@@ -105,7 +104,7 @@ class RelayedWSEventStream extends WSEventStream_1.WSEventStream {
         if (selectedPeer == null) {
             return;
         }
-        console.log('RelayedWSEventStream: disconnected from ' + selectedPeer.getPeerName());
+        console.info('RelayedWSEventStream: disconnected from ' + selectedPeer.getPeerName());
         let timeout = WS_RECONNECT_INTERVAL;
         if (this.pingTimer > 0) {
             clearInterval(this.pingTimer);
@@ -197,7 +196,7 @@ class RelayedWSEventStream extends WSEventStream_1.WSEventStream {
             port = location.protocol.startsWith('https') ? PROTO_DEFAULT_HTTPS_PORT : PROTO_DEFAULT_HTTP_PORT;
         }
         this.onStatus('Connecting to ' + dstLocation);
-        console.log('RelayedWSEventStream: CONECTING TO ' + dstLocation);
+        console.info('RelayedWSEventStream: CONECTING TO ' + dstLocation);
         let scheme = this.useTLS || dstLocation.href.startsWith('https') ? 'wss' : 'ws';
         let url = this.buildWSURL(scheme, dstLocation, port, this.wsStreamConfig.path);
         let peerName = selectedPeer != null ? selectedPeer.getPeerName() : '[UNNAMED-DEVICE]';
@@ -205,7 +204,6 @@ class RelayedWSEventStream extends WSEventStream_1.WSEventStream {
         this.startWS(peer);
     }
     isValidSessionMessage(obj) {
-        console.log(this.currentPeers, 'curAddr: ' + this.localAddress);
         if (obj.hasOwnProperty(PROTO_HDR_SRC) && obj.hasOwnProperty(PROTO_HDR_DST)) {
             let src = this.parsePeerAddress(obj[PROTO_HDR_SRC]);
             if (this.currentPeers.has(src) && obj[PROTO_HDR_DST] == this.localAddress) {
@@ -221,14 +219,13 @@ class RelayedWSEventStream extends WSEventStream_1.WSEventStream {
         return label.substring(label.indexOf('/') + 1);
     }
     savePeers(groupDescr) {
-        console.log('RelayedWSEventStream: PEERS: ', groupDescr);
         if (this.peersChangeCallback != null) {
             let peers = groupDescr.peers;
             peers = peers.filter((label) => this.isSensorLabel(label)).map((label) => this.parsePeerAddress(label));
             this.onStatus('Discovered ' + peers.length + ' devices.');
             let oldPeers = this.currentPeers.size;
             this.currentPeers = new Set([...this.currentPeers].filter((peer) => peers.findIndex((x) => x == peer) >= 0));
-            console.log('Old peers: ' + oldPeers + ', current: ' + this.currentPeers.size);
+            console.debug('Old peers: ' + oldPeers + ', current: ' + this.currentPeers.size);
             if (oldPeers != this.currentPeers.size) {
                 this.peersChangeCallback([...this.currentPeers]);
             }
@@ -245,11 +242,11 @@ class RelayedWSEventStream extends WSEventStream_1.WSEventStream {
                 this.getStatusMonitor().clearErrorState();
                 if (this.localAddress != '' && this.localAddress == target) {
                     if (eventType == PROTO_EVENT_TYPE_INVITE) {
-                        console.log('INVITE from ' + src);
+                        console.debug('INVITE from ' + src);
                         this.joinPeerSession(src);
                     }
                     else {
-                        console.log(src + ' joined this session.');
+                        console.debug(src + ' joined this session.');
                         this.registerPeer(src);
                     }
                 }
@@ -269,7 +266,7 @@ class RelayedWSEventStream extends WSEventStream_1.WSEventStream {
             let payload = JSON.parse(JSON.stringify(obj[PROTO_HDR_MSG]));
             if (payload != null && payload.hasOwnProperty(PROTO_HDR_ERROR_REASON)) {
                 this.sessionState = STATE_ERROR;
-                console.log({ 'Connection state=>ERROR; reason=': payload[PROTO_HDR_ERROR_REASON] });
+                console.debug({ 'Connection state=>ERROR; reason=': payload[PROTO_HDR_ERROR_REASON] });
                 this.onError('Connection error: ' + payload[PROTO_HDR_ERROR_REASON]);
             }
         }
@@ -285,7 +282,7 @@ class RelayedWSEventStream extends WSEventStream_1.WSEventStream {
             this.handleEventMessage(obj, obj.event);
         }
         else {
-            console.log('Unknown msg format: ' + evtData);
+            console.debug('Unknown msg format: ' + evtData);
         }
     }
     getEventHandler(eventGroup) {
