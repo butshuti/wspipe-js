@@ -13,4 +13,5 @@ export declare abstract class EventStream {
     abstract sendTo(payload: string, dstPeer: Peer): void;
     abstract start(dstPeer: Peer, eventCode: string): void;
     abstract stop(dstPeer: Peer, eventCode: string): void;
+    abstract ping(timeout: number): Promise<boolean>;
 }

@@ -77,9 +77,9 @@ export class DiscoveryClient {
 
     static async test(url: string): Promise<boolean> {
         return new Promise<boolean>(resolve => {
-            WSEventStream.getStreamDescriptor(url).then(streamDescriptor => {
+            WSEventStream.getStreamDescriptor(url).then(_ => {
                 resolve(true);
-            }).catch(_ => {
+            }).catch(err => {
                 resolve(false);
             });
         })

@@ -65,9 +65,10 @@ class DiscoveryClient {
     }
     static async test(url) {
         return new Promise(resolve => {
-            WSEventStream_1.WSEventStream.getStreamDescriptor(url).then(streamDescriptor => {
+            WSEventStream_1.WSEventStream.getStreamDescriptor(url).then(_ => {
                 resolve(true);
-            }).catch(_ => {
+            }).catch(err => {
+                console.error(err);
                 resolve(false);
             });
         });

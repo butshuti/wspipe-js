@@ -15,7 +15,7 @@ export declare class RelayedWSEventStream extends WSEventStream {
     currentPeers: Set<string>;
     eventChannels: Set<string>;
     useTLS: boolean;
-    pingTimer: number | null;
+    pingTimer: number;
     peersChangeCallback: Function | null;
     constructor(config: WSEventStreamConfig);
     static initialize(config: WSEventStreamConfig): void;

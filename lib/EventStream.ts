@@ -51,4 +51,6 @@ export abstract class EventStream {
     abstract start(dstPeer: Peer, eventCode: string): void;
 
     abstract stop(dstPeer: Peer, eventCode: string): void;
+
+    abstract ping(timeout: number): Promise<boolean>;
 }

@@ -70,7 +70,7 @@ export class RelayedWSEventStream extends WSEventStream{
     currentPeers: Set<string>;
     eventChannels: Set<string>;
     useTLS: boolean;
-    pingTimer: number|null;
+    pingTimer: number;
     peersChangeCallback: Function|null;
 
     constructor(config: WSEventStreamConfig){
@@ -83,7 +83,7 @@ export class RelayedWSEventStream extends WSEventStream{
         this.currentPeers = new Set([]);
         this.eventChannels = new Set(['network_delay_test', 'app_data']);
         this.useTLS = USE_TLS;
-        this.pingTimer = null;
+        this.pingTimer = -1;
         this.queryConnectedPeers = this.queryConnectedPeers.bind(this);
         this.initiateWSSession(new Peer('', config.dstLocation, null).withConfig(this.getEventStreamConfig()));
         this.localName = 'DASHBOARD-' + Math.random().toString(36).substring(10).toUpperCase();
@@ -145,7 +145,7 @@ export class RelayedWSEventStream extends WSEventStream{
         this.onStatus('Connected');
         this.queryConnectedPeers();
         this.lastConnectionURL = selectedPeer.getURL();
-        if(this.pingTimer != null){
+        if(this.pingTimer > 0){
             clearInterval(this.pingTimer);
         }
         this.pingTimer = setInterval(this.queryConnectedPeers, PROTO_SESSION_PING_INTERVAL);
@@ -159,8 +159,9 @@ export class RelayedWSEventStream extends WSEventStream{
         }
         console.log('RelayedWSEventStream: disconnected from ' + selectedPeer.getPeerName());
         let timeout: number = WS_RECONNECT_INTERVAL;
-        if(this.pingTimer != null){
+        if(this.pingTimer > 0){
             clearInterval(this.pingTimer);
+            this.pingTimer = -1;
             timeout = WS_RECONNECT_INTERVAL;
         }else{
             timeout = WS_RECONNECT_INTERVAL * 5;

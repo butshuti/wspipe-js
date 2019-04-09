@@ -43,7 +43,7 @@ class RelayedWSEventStream extends WSEventStream_1.WSEventStream {
         this.currentPeers = new Set([]);
         this.eventChannels = new Set(['network_delay_test', 'app_data']);
         this.useTLS = USE_TLS;
-        this.pingTimer = null;
+        this.pingTimer = -1;
         this.queryConnectedPeers = this.queryConnectedPeers.bind(this);
         this.initiateWSSession(new Peer_1.Peer('', config.dstLocation, null).withConfig(this.getEventStreamConfig()));
         this.localName = 'DASHBOARD-' + Math.random().toString(36).substring(10).toUpperCase();
@@ -94,7 +94,7 @@ class RelayedWSEventStream extends WSEventStream_1.WSEventStream {
         this.onStatus('Connected');
         this.queryConnectedPeers();
         this.lastConnectionURL = selectedPeer.getURL();
-        if (this.pingTimer != null) {
+        if (this.pingTimer > 0) {
             clearInterval(this.pingTimer);
         }
         this.pingTimer = setInterval(this.queryConnectedPeers, PROTO_SESSION_PING_INTERVAL);
@@ -107,8 +107,9 @@ class RelayedWSEventStream extends WSEventStream_1.WSEventStream {
         }
         console.log('RelayedWSEventStream: disconnected from ' + selectedPeer.getPeerName());
         let timeout = WS_RECONNECT_INTERVAL;
-        if (this.pingTimer != null) {
+        if (this.pingTimer > 0) {
             clearInterval(this.pingTimer);
+            this.pingTimer = -1;
             timeout = WS_RECONNECT_INTERVAL;
         }
         else {

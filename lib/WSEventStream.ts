@@ -5,6 +5,9 @@ import {Peer} from './Peer';
 import {timedFetch} from './fetch';
 import { StatusMonitor } from './StatusMonitor';
 
+
+const WS_CODE_NORMAL_CLOSURE = 1000;
+
 //const MSG_SYNC_KEY = 'sync';
 const MSG_TYPE_CTRL_KEY = 'ctrl';
 const MSG_TYPE_DATA_KEY = 'data';
@@ -14,6 +17,8 @@ const SERVICE_CONFIG_SCHEME_KEY = 'scheme';
 const SERVICE_CONFIG_PATH_KEY = 'path';
 const SERVICE_CONFIG_PROTOCOL_KEY = 'protocol';
 const SERVICE_CONFIG_NODE_NAME_KEY = 'nodeName';
+const PROTO_PING_REQ_PREFIX = ':ping:';
+const PROTO_PING_ACK_PREFIX = ':pong:';
 
 const DEFAULT_STREAM_PROTOCOL = 'p2p';
 
@@ -21,8 +26,10 @@ const MAX_RETRIES = 3;
 
 const CONN_TIMEOUT = 5000;
 const WS_RECONNECT_INTERVAL = 3000;
+const CONNECT_ON_SEND_REPEAT_INTERVAL = 5000;
 
 const OPEN_SOCKETS: Map<string, WebSocket> = new Map();
+const LATEST_PINGS: Map<string, boolean> = new Map();
 
 interface CtrlMessage {
     ctrl: string;
@@ -43,10 +50,17 @@ export class WSEventStream extends EventStream {
     ws: WebSocket|null;
     counter:number;
     retryCounter: number;
+    reconnectInterval: number;
     wsStreamConfig: WSEventStreamConfig;
     pendingCommandACKs: Map<string, number>;
     activeSessions: Map<string, string>;
+    lastReceivedMsg: Map<string, number>;
     wsTimeout: number;
+    wsRetryTimer: number;
+    pingTimer: number;
+    lastConnectOnSend: number;
+    pingInterval: number;
+    lastPingTs: number;
     constructor(config: WSEventStreamConfig,  handler: EventHandler|null, statusMonitor: StatusMonitor|null){
         super(handler, statusMonitor);
         this.ws = null;
@@ -56,9 +70,16 @@ export class WSEventStream extends EventStream {
         }
         this.counter = 0;
         this.retryCounter = 0;
-        this.wsTimeout= 0;
+        this.reconnectInterval = WS_RECONNECT_INTERVAL;
+        this.wsTimeout = 0;
+        this.wsRetryTimer = -1;
+        this.pingTimer = -1;
+        this.lastPingTs = -1;
+        this.lastConnectOnSend = -1;
+        this.pingInterval = CONNECT_ON_SEND_REPEAT_INTERVAL;
         this.pendingCommandACKs = new Map();
         this.activeSessions = new Map();
+        this.lastReceivedMsg = new Map();
     }
 
     withConfig(config: WSEventStreamConfig): WSEventStream {
@@ -129,6 +150,39 @@ export class WSEventStream extends EventStream {
         if(eventCode != null && this.pendingCommandACKs.get(eventCode) !== undefined){
             this.startSession(selectedPeer, eventCode, true);
         }
+        this.wsRetryTimer = -1;
+        this.reconnectInterval = WS_RECONNECT_INTERVAL;
+        if(this.pingTimer > 0){
+            clearInterval(this.pingTimer);
+        }
+        let peerName:string = selectedPeer.getPeerName();
+        this.pingInterval = CONNECT_ON_SEND_REPEAT_INTERVAL;
+        this.pingTimer = setInterval(() => {
+            let now: number = Date.now();
+            let lastReceipt: number = this.lastReceivedMsg.get(peerName) || now;
+            let lastReceiptWindow: number = now - (CONN_TIMEOUT * 2);
+            if((this.lastPingTs < now - this.pingInterval) && (lastReceipt < lastReceiptWindow)){
+                this.lastPingTs = now;
+                this.ping(CONN_TIMEOUT).then(success => {
+                    if(success){
+                        this.pingInterval *= 2;
+                    }else{
+                        console.error('Ping timed out.');
+                        this.onError('Connection lost.');
+                        let ws: WebSocket|null = this.ws;
+                        if(ws != null){
+                            ws.close();
+                            this.clearConnection(ws.url);
+                            clearInterval(this.pingTimer);
+                            this.pingTimer = -1;
+                        }
+                    }
+                }).catch(err => {
+                    console.error(err);
+                    this.pingInterval *= 3;
+                });
+            }
+        }, this.pingInterval);
     }
 
     onDisconnected(selectedPeer: Peer): void {
@@ -138,9 +192,15 @@ export class WSEventStream extends EventStream {
             let eventCode: string | undefined = this.activeSessions.get(selectedPeer.getPeerName());
             if(eventCode){
                 this.onError('Attempting to reconnect to ' + selectedPeer.getPeerName() + ' in ' + (WS_RECONNECT_INTERVAL/1000) + ' seconds');
-                setTimeout(()=> {
-                    this.startWS(selectedPeer);
-                }, WS_RECONNECT_INTERVAL);
+                if(this.wsRetryTimer < 0){
+                    this.wsRetryTimer = setTimeout(()=> {
+                        this.wsRetryTimer = -1;
+                        if(this.ws == null){
+                            this.startWS(selectedPeer);
+                        }
+                    }, this.reconnectInterval);
+                    this.reconnectInterval *= 2;
+                }
                 return;
             }
         }
@@ -188,7 +248,7 @@ export class WSEventStream extends EventStream {
             try{
                 let socket: WebSocket|undefined = OPEN_SOCKETS.get(url);
                 if(socket !== undefined){
-                    socket.close();
+                    socket.close(WS_CODE_NORMAL_CLOSURE);
                 }
             }catch (e){
                 console.error(e);
@@ -199,15 +259,64 @@ export class WSEventStream extends EventStream {
 
     setWSConnectTimeout(timeout: number): void {
         this.wsTimeout = setTimeout(() => {
-            if(this.ws != null && this.ws.readyState == WebSocket.CONNECTING){
-                this.ws.close();
-                this.onError('Connection to ' + this.ws.url.replace(/.+:\/\//, '').replace(/\/.+/, '') + ' timed out');
+            let ws: WebSocket|null = this.ws;
+            if(ws != null && ws.readyState == WebSocket.CONNECTING){
+                ws.close(WS_CODE_NORMAL_CLOSURE);
+                this.onError('Connection to ' + ws.url.replace(/.+:\/\//, '').replace(/\/.+/, '') + ' timed out');
             }
         }, timeout);
     }
 
     clearWSConnectionTimeout(): void {
         clearTimeout(this.wsTimeout);
+    }
+
+    ping(timeout: number) : Promise<boolean> {
+        let token: string = '' + Math.floor(Math.random() * Date.now());
+        LATEST_PINGS.set(token, false);
+        return new Promise(resolve => {
+            setTimeout(()=>{
+                let result: boolean = LATEST_PINGS.get(token) || false;
+                LATEST_PINGS.delete(token);
+                resolve(result);
+            }, timeout);
+        });
+    }
+
+    pong(msg: string): void {
+        let token: string|null = msg.startsWith(PROTO_PING_ACK_PREFIX) ? msg.substring(PROTO_PING_ACK_PREFIX.length) : null;
+        if(token != null){
+            if(LATEST_PINGS.has(token)){
+                LATEST_PINGS.set(token, true);
+            }
+        }
+    }
+
+    isPingMsg(msg: string): boolean {
+        return msg.startsWith(PROTO_PING_REQ_PREFIX);
+    }
+
+    isPongMsg(msg: string): boolean {
+        return msg.startsWith(PROTO_PING_ACK_PREFIX);
+    }
+
+    recordPong(msg: string): void{
+        let token: string|null = msg.startsWith(PROTO_PING_ACK_PREFIX) ? msg.substring(PROTO_PING_ACK_PREFIX.length) : null;
+        if(token != null && LATEST_PINGS.has(token)){
+            LATEST_PINGS.set(token, true);
+        }
+    }
+
+    processPingPongMsg(msg: string): boolean{
+        if(this.isPingMsg(msg)){
+            this.pong(msg);
+            return true;
+        }
+        if(this.isPongMsg(msg)){
+            this.recordPong(msg);
+            return true;
+        }
+        return false;
     }
 
     startWS(selectedPeer: Peer): void {
@@ -219,7 +328,7 @@ export class WSEventStream extends EventStream {
         if(this.isConnected(url)){
             this.ws = this.getConnectionSocket(url);
         }else if(this.ws != null && this.ws.url != url){
-            this.ws.close();
+            this.ws.close(WS_CODE_NORMAL_CLOSURE);
             this.ws = null;
         }
         if(this.ws == null || this.ws.readyState == WebSocket.CLOSED || this.ws.readyState == WebSocket.CLOSING){
@@ -231,7 +340,9 @@ export class WSEventStream extends EventStream {
         this.setWSConnectTimeout(CONN_TIMEOUT);
         let thiz = this;
         let ws = this.ws;
+        let peerName: string = selectedPeer.getPeerName();
         this.ws.onopen = function(){
+            thiz.lastReceivedMsg.set(peerName, Date.now() + CONN_TIMEOUT);
             thiz.onConnected(selectedPeer);
         };
         this.ws.onclose = function(){
@@ -240,10 +351,15 @@ export class WSEventStream extends EventStream {
             thiz.onDisconnected(selectedPeer);
         };
         this.ws.onmessage = function(evt){
-            thiz.broadcastEvent(evt.data, ws.url);
+            thiz.lastReceivedMsg.set(peerName, Date.now());
+            if(thiz.processPingPongMsg(evt.data)){
+                console.log('PING-PONG:' + evt.data);
+            }else{
+                thiz.broadcastEvent(evt.data, ws.url);
+            }
         };
         this.ws.onerror = function(evt){
-            console.log(evt);
+            console.error(evt);
             thiz.onError('Error connecting to ' + ws.url);
             thiz.clearConnection(this.url);
         };
@@ -252,17 +368,17 @@ export class WSEventStream extends EventStream {
 
     startSession(selectedPeer: Peer, eventCode: string, reset: boolean): void{
         this.getStatusMonitor().clearErrorState();
-        if(this.ws != null && this.ws.OPEN){
+        if(this.ws != null && this.ws.readyState == WebSocket.OPEN){
             if(reset){
                 this.pendingCommandACKs.set(eventCode, 0);
             }
             this.ws.send(this.packMsg(eventCode, selectedPeer));
-            this.onStatus('Starting a new session....');
+            console.log('Starting a new session....');
             let thiz = this;
             setInterval(function(){
                 let retryCounter: number | undefined = thiz.pendingCommandACKs.get(eventCode);
                 if(retryCounter !== undefined && retryCounter < MAX_RETRIES){
-                    thiz.onStatus('startSession(): retry #' + thiz.retryCounter);
+                    console.log('startSession(): retry #' + thiz.retryCounter);
                     thiz.startSession(selectedPeer, eventCode, false);
                     thiz.pendingCommandACKs.set(eventCode, retryCounter + 1);
                 }
@@ -290,7 +406,7 @@ export class WSEventStream extends EventStream {
             if(!this.wsStreamConfig.keepAlive){
                 let _ws = this.ws;
                 setTimeout(()=>{
-                    _ws.close();
+                    _ws.close(WS_CODE_NORMAL_CLOSURE);
                 }, 1000);
                 this.ws = null;
             }
@@ -302,9 +418,11 @@ export class WSEventStream extends EventStream {
     sendTo(msg: string, selectedPeer: Peer): void {
         if(this.ws != null){
             this.sendMsg(this.packMsg(msg, selectedPeer));
-        }else{
+        }else if((Date.now() - this.lastConnectOnSend) > this.pingInterval){
+            this.onError('Reconnecting to ' + selectedPeer.getPeerName());
+            this.lastConnectOnSend = Date.now();
+            this.pingInterval *= 2;
             this.startWS(selectedPeer);
-            this.onStatus('');
             setTimeout(() => {
                 this.sendMsg(this.packMsg(msg, selectedPeer));
             }, 2000);
@@ -333,7 +451,6 @@ export class WSEventStream extends EventStream {
 
     broadcastEvent(evtData: string, eventGroup: string): void {
         let obj: CtrlMessage;
-        this.onStatus('');
         try{
             obj = JSON.parse(evtData);
         }catch (e){
