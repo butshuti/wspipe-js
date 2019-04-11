@@ -55,7 +55,7 @@ class WSEventStream extends EventStream_1.EventStream {
     static async getStreamDescriptor(url) {
         url = url.replace(/\/$/g, '') + API_WS_REQUEST_PATH;
         return new Promise((resolve, reject) => {
-            fetch_1.timedFetch(url, {}, CONN_TIMEOUT).then((response) => {
+            fetch_1.timedFetch(url, { credentials: 'include' }, CONN_TIMEOUT).then((response) => {
                 if (response.ok) {
                     return response.json();
                 }
