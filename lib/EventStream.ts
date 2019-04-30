@@ -33,16 +33,16 @@ export abstract class EventStream {
         return this.statusMonitor || new NoOpStatusMonitor();
     }
 
-    routeEvent(obj: JSON, eventGroup: string): void {
+    routeEvent(eventData: string, eventGroup: string): void {
         let handler: EventHandler |null = this.getEventHandler(eventGroup);
         if(handler != null){
-            handler.handleEvent(this.counter++, obj);
+            handler.handleEvent(this.counter++, eventData);
         }
     }
 
-    broadcast(evtIndex:number, obj: JSON): void{
+    broadcast(evtIndex:number, eventData: string): void{
         if(this.handler != null){
-            this.handler.handleEvent(evtIndex, obj);
+            this.handler.handleEvent(evtIndex, eventData);
         }
     }
 

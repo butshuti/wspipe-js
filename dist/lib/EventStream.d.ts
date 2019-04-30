@@ -8,8 +8,8 @@ export declare abstract class EventStream {
     constructor(handler: EventHandler | null, statusMonitor: StatusMonitor | null);
     getEventHandler(eventGroup: string): EventHandler | null;
     getStatusMonitor(): StatusMonitor;
-    routeEvent(obj: JSON, eventGroup: string): void;
-    broadcast(evtIndex: number, obj: JSON): void;
+    routeEvent(eventData: string, eventGroup: string): void;
+    broadcast(evtIndex: number, eventData: string): void;
     abstract sendTo(payload: string, dstPeer: Peer): void;
     abstract start(dstPeer: Peer, eventCode: string): void;
     abstract stop(dstPeer: Peer, eventCode: string): void;

@@ -452,9 +452,7 @@ export class WSEventStream extends EventStream {
         if(obj.sync == MSG_TYPE_CTRL_KEY){
             this.handleCtrlEvent(obj);
         }else if(obj.sync === MSG_TYPE_DATA_KEY){
-            this.routeEvent(JSON.parse(obj.attachment), eventGroup);
-        }else{
-            this.routeEvent(JSON.parse(JSON.stringify(obj)), eventGroup);
+            this.routeEvent(obj.attachment, eventGroup);
         }
     }
 }

@@ -25,15 +25,15 @@ class EventStream {
     getStatusMonitor() {
         return this.statusMonitor || new NoOpStatusMonitor();
     }
-    routeEvent(obj, eventGroup) {
+    routeEvent(eventData, eventGroup) {
         let handler = this.getEventHandler(eventGroup);
         if (handler != null) {
-            handler.handleEvent(this.counter++, obj);
+            handler.handleEvent(this.counter++, eventData);
         }
     }
-    broadcast(evtIndex, obj) {
+    broadcast(evtIndex, eventData) {
         if (this.handler != null) {
-            this.handler.handleEvent(evtIndex, obj);
+            this.handler.handleEvent(evtIndex, eventData);
         }
     }
 }
