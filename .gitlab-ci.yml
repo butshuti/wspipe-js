@@ -51,10 +51,10 @@ make:
   script:
    - npm run build
 
-lint:
-  stage: test
-  script:
-   - npm run lint
+#lint:
+#  stage: test
+#  script:
+#   - npm run lint
 
 #seccheck:
 #  stage: test
