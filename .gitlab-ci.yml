@@ -1,0 +1,68 @@
+# Alpine is small and lts (10) is relatively stable.
+# This is the only Alpine-based image I could find with git and python in it.
+image: labhackercd/alpine-python3-nodejs
+
+# The test script (check.ts) needs no services.
+services:
+
+stages:
+  - configure
+  - build
+  - test
+  - deploy
+
+# This folder is cached between builds
+# http://docs.gitlab.com/ce/ci/yaml/README.html#cache
+cache:
+  key: ${CI_COMMIT_REF_SLUG}
+  paths:
+  - node_modules/
+  - .npmrc
+  - build/
+
+reposetup:
+  stage: configure
+  script:
+   # set up .npmrc
+   # ${NSL_NPM_REGISTRY_URL} is the registry URL
+   # (e.g. https://nsldock.10.120.60.84.nip.io/cliaccess/nexus/repository/npm-snapshot/)
+   # ${NSL_NPM_SCHEMELESS_REGISTRY_URL} is the registry URL without scheme and colon
+   # (e.g. //nsldock.10.120.60.84.nip.io/nexus/cliaccess/repository/npm-snapshot/)
+   # ${NSL_NPM_REGISTRY_EMAIL} is the email address of the user doing the uploading
+   # (e.g. gitlabci@example.com)
+   # ${NSL_NPM_REGISTRY_USERNAME} is the username for the user doing the uploading 
+   # ${NSL_NPM_REGISTRY_PASSWORD} is a Personal Access Token for that user
+   # For best results, use the "CLI Access" endpoint given to you
+   # as those are designed to always fall on basic auth even with clients that can't always_auth
+   - echo "@nsl:registry=$NSL_NPM_REGISTRY_URL" > a.prenpmrc
+   - echo "$NSL_NPM_SCHEMELESS_REGISTRY_URL:username=$NSL_NPM_REGISTRY_USERNAME" > b.prenpmrc
+   - echo "$NSL_NPM_SCHEMELESS_REGISTRY_URL:_password=$(printf "%s" $NSL_NPM_REGISTRY_PASSWORD | base64)" > c.prenpmrc
+   - echo "email=$NSL_NPM_REGISTRY_EMAIL" > d.prenpmrc
+   - echo "always-auth=true" > e.prenpmrc
+   - echo "strict-ssl=false" > f.prenpmrc
+   - cat *.prenpmrc > .npmrc
+   - rm *.prenpmrc
+   # - cat .npmrc # PLEASE COMMENT THIS LINE WHEN DEBUG DONE!!!
+   # download all dependencies using lockfile
+   - npm ci
+
+make:
+  stage: build
+  script:
+   - npm run build
+
+#lint:
+#  stage: test
+#  script:
+#   - npm run lint
+
+#seccheck:
+#  stage: test
+#  script:
+#   - npm run audit
+   
+package:
+  stage: deploy
+  script:
+   - npm publish
+

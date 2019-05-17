@@ -1,5 +1,5 @@
 {
-	"name": "wspipe-js",
+	"name": "@nsl/wspipe-js",
 	"version": "1.0.0",
 	"description": "A js library for multiplexing websocket pipes",
 	"license": "MIT",
@@ -8,7 +8,7 @@
 	},
 	"repository": {
 		"type": "git",
-		"url": "https://github.com/butshuti/wspipe-js.git"
+		"url": "https://nslgit.cse.unt.edu/gitlab/CPR_2017/v2_minimal/wspipe_js.git"
 	},
 	"main": "dist/index.js",
 	"types": "dist/index.d.ts",
