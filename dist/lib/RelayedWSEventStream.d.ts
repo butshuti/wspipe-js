@@ -41,11 +41,11 @@ export declare class RelayedWSEventStream extends WSEventStream {
     onPeersChanged(): void;
     registerPeer(peer: string): void;
     initiateWSSession(selectedPeer: Peer): void;
-    private isValidSessionMessage(obj);
-    private isSensorLabel(label);
+    private isValidSessionMessage;
+    private isSensorLabel;
     parsePeerAddress(label: string): string;
-    private savePeers(groupDescr);
-    private handleEventMessage(obj, eventType);
+    private savePeers;
+    private handleEventMessage;
     broadcastEvent(evtData: string): void;
     getEventHandler(eventGroup: string): EventHandler | null;
 }

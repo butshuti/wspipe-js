@@ -22,8 +22,8 @@ export declare class DiscoveryClient {
     start(statusCallback: Function | null): Promise<boolean>;
     static test(url: string): Promise<boolean>;
     checkStatus(): Promise<ServerStatus>;
-    private static convertHttpCode(code);
-    private extractPeerName(label);
-    private registerPeers(peerUpdates);
+    private static convertHttpCode;
+    private extractPeerName;
+    private registerPeers;
     onPeersChange(peers: string[]): void;
 }

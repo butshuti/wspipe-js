@@ -11,9 +11,9 @@
 		"url": "https://github.com/butshuti/wspipe-js.git"
 	},
 	"main": "dist/index.js",
- 	"types": "dist/index.d.ts",
+	"types": "dist/index.d.ts",
 	"devDependencies": {
-		"typescript": "latest"
+		"typescript": "2.9"
 	},
 	"scripts": {
 		"build": "tsc"

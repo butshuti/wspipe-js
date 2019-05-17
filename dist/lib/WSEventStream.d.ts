@@ -55,6 +55,6 @@ export declare class WSEventStream extends EventStream {
     sendTo(msg: string, selectedPeer: Peer): void;
     sendMsg(msg: string): void;
     packMsg(msg: string, selectedPeer: Peer): string;
-    private handleCtrlEvent(evt);
+    private handleCtrlEvent;
     broadcastEvent(evtData: string, eventGroup: string): void;
 }
